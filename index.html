@@ -192,9 +192,13 @@ const setState = (changes) => { Object.assign(state, changes); render(); };
 db.auth.onAuthStateChange(async (event, session) => {
   if (session?.user) {
     state.user = session.user;
-    const { data: profile } = await db.from('profiles').select('*').eq('id', session.user.id).single();
-    state.profile = profile;
-    if (profile?.role !== 'patient') await loadPatients();
+    try {
+      const { data: profile } = await db.from('profiles').select('*').eq('id', session.user.id).single();
+      state.profile = profile;
+      if (profile?.role !== 'patient') await loadPatients();
+    } catch(e) {
+      console.log('Profile error:', e);
+    }
   } else {
     state.user = null; state.profile = null; state.patients = [];
   }
