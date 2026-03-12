@@ -1,705 +1,511 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>RxCompound — Pharmacy Portal</title>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>RxCompound</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  :root {
-    --bg: #F5F3EF; --surface: #FFFFFF; --ink: #1C1917; --muted: #78716C;
-    --border: #E7E5E4; --accent: #2D6A4F; --accent-light: #D8F3DC;
-    --warn: #B45309; --warn-light: #FEF3C7; --red: #DC2626; --red-light: #FEE2E2;
-  }
-  body { font-family: 'Palatino Linotype', Palatino, 'Book Antiqua', serif; background: var(--bg); color: var(--ink); min-height: 100vh; }
-  input, select, textarea, button { font-family: inherit; }
-  button { cursor: pointer; }
-
-  /* Layout */
-  .app { min-height: 100vh; }
-  header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 32px; height: 58px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
-  .header-left { display: flex; align-items: center; gap: 12px; }
-  .logo { font-size: 18px; font-weight: 600; color: var(--ink); }
-  .role-badge { font-size: 12px; padding: 3px 10px; border-radius: 20px; font-weight: 500; }
-  .badge-patient { background: #DBEAFE; color: #1E40AF; }
-  .badge-doctor { background: var(--accent-light); color: #166534; }
-  .badge-pharmacist { background: var(--warn-light); color: var(--warn); }
-  .main { padding: 28px 32px; }
-
-  /* Auth */
-  .auth-wrap { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; }
-  .auth-card { background: var(--surface); border: 1px solid var(--border); border-radius: 18px; padding: 40px; width: 100%; max-width: 420px; }
-  .auth-logo { text-align: center; margin-bottom: 32px; }
-  .auth-logo .icon { font-size: 40px; margin-bottom: 10px; }
-  .auth-logo h1 { font-size: 26px; font-weight: 400; color: var(--ink); }
-  .auth-logo p { color: var(--muted); font-size: 13px; margin-top: 4px; }
-  .auth-tabs { display: flex; gap: 0; margin-bottom: 24px; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
-  .auth-tab { flex: 1; padding: 10px; background: none; border: none; font-size: 14px; color: var(--muted); transition: all 0.2s; }
-  .auth-tab.active { background: var(--accent); color: white; font-weight: 600; }
-
-  /* Form elements */
-  .field { margin-bottom: 14px; }
-  .field label { display: block; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 5px; font-weight: 600; }
-  .field input, .field select, .field textarea {
-    width: 100%; padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px;
-    font-size: 14px; color: var(--ink); background: #FAFAF9; outline: none; transition: border-color 0.2s;
-  }
-  .field input:focus, .field select:focus, .field textarea:focus { border-color: var(--accent); }
-  .field textarea { resize: vertical; }
-
-  /* Buttons */
-  .btn { padding: 11px 22px; border-radius: 9px; font-size: 14px; font-weight: 600; border: none; transition: opacity 0.15s; display: inline-flex; align-items: center; gap: 6px; }
-  .btn:hover { opacity: 0.85; }
-  .btn-primary { background: var(--accent); color: white; }
-  .btn-ghost { background: transparent; color: var(--muted); border: 1px solid var(--border); }
-  .btn-danger { background: var(--red-light); color: var(--red); border: 1px solid #FECACA; }
-  .btn-sm { padding: 7px 14px; font-size: 12px; }
-  .btn-full { width: 100%; justify-content: center; }
-
-  /* Cards & Sections */
-  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 22px 24px; margin-bottom: 16px; }
-  .card-title { font-size: 15px; font-weight: 600; color: var(--ink); margin-bottom: 18px; display: flex; align-items: center; gap: 8px; }
-  .section-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600; margin-bottom: 10px; }
-
-  /* Two-pane layout */
-  .pane-wrap { display: flex; gap: 24px; height: calc(100vh - 114px); }
-  .pane-left { width: 300px; min-width: 260px; overflow-y: auto; }
-  .pane-right { flex: 1; overflow-y: auto; }
-
-  /* Patient cards in list */
-  .patient-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; margin-bottom: 8px; cursor: pointer; transition: all 0.15s; }
-  .patient-card:hover { border-color: var(--accent); }
-  .patient-card.selected { background: #F0FDF4; border-color: #BBF7D0; }
-  .patient-name { font-weight: 600; font-size: 14px; color: var(--ink); }
-  .patient-meta { font-size: 12px; color: var(--muted); margin-top: 3px; }
-  .patient-complaint { font-size: 12px; color: var(--muted); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-
-  /* Pills */
-  .pill { font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 20px; letter-spacing: 0.04em; text-transform: uppercase; }
-  .pill-pending { background: var(--warn-light); color: #92400E; }
-  .pill-prescribed { background: var(--accent-light); color: #1B4332; }
-
-  /* Field display */
-  .field-display { margin-bottom: 14px; }
-  .field-display .label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 4px; }
-  .field-display .value { font-size: 14px; color: var(--ink); line-height: 1.5; }
-
-  /* Table */
-  .rx-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-  .rx-table th { text-align: left; padding: 8px 10px; color: var(--muted); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; border-bottom: 1px solid var(--border); }
-  .rx-table td { padding: 10px; border-bottom: 1px solid var(--border); color: var(--ink); }
-  .rx-table tr:last-child td { border-bottom: none; }
-
-  /* Ingredient row */
-  .ing-row { display: flex; gap: 8px; margin-bottom: 8px; align-items: center; }
-  .ing-row input, .ing-row select { padding: 9px 10px; border: 1px solid var(--border); border-radius: 8px; font-size: 13px; color: var(--ink); background: #FAFAF9; outline: none; }
-  .ing-row input:focus, .ing-row select:focus { border-color: var(--accent); }
-
-  /* Steps */
-  .steps { display: flex; gap: 8px; margin-bottom: 8px; }
-  .step-bar { flex: 1; height: 4px; border-radius: 2px; background: var(--border); transition: background 0.3s; }
-  .step-bar.active { background: var(--accent); }
-  .step-labels { display: flex; gap: 8px; margin-bottom: 24px; }
-  .step-label { flex: 1; font-size: 11px; text-align: center; color: var(--muted); }
-  .step-label.active { color: var(--accent); font-weight: 600; }
-
-  /* Photo upload */
-  .photo-drop { border: 2px dashed var(--border); border-radius: 12px; padding: 28px; text-align: center; cursor: pointer; background: #FAFAF9; transition: border-color 0.2s; margin-bottom: 16px; }
-  .photo-drop:hover { border-color: var(--accent); }
-  .photo-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 16px; }
-  .photo-thumb { position: relative; border-radius: 10px; overflow: hidden; aspect-ratio: 1; background: var(--border); }
-  .photo-thumb img { width: 100%; height: 100%; object-fit: cover; }
-  .photo-remove { position: absolute; top: 6px; right: 6px; background: rgba(0,0,0,0.6); border: none; border-radius: 50%; width: 24px; height: 24px; color: white; font-size: 14px; display: flex; align-items: center; justify-content: center; }
-
-  /* Toast */
-  .toast { position: fixed; top: 20px; right: 20px; z-index: 9999; padding: 13px 20px; border-radius: 10px; font-size: 14px; box-shadow: 0 8px 24px rgba(0,0,0,0.15); animation: slideIn 0.3s ease; max-width: 320px; }
-  .toast-success { background: var(--accent); color: white; }
-  .toast-error { background: var(--red); color: white; }
-  @keyframes slideIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
-
-  /* Empty state */
-  .empty { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 60%; color: var(--muted); text-align: center; }
-  .empty .icon { font-size: 48px; opacity: 0.3; margin-bottom: 14px; }
-
-  /* Grid helpers */
-  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0 24px; }
-  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
-  .flex-between { display: flex; justify-content: space-between; align-items: center; }
-  .flex-gap { display: flex; gap: 10px; align-items: center; }
-  .mt-16 { margin-top: 16px; }
-  .mt-20 { margin-top: 20px; }
-  .mb-0 { margin-bottom: 0; }
-
-  /* Spinner */
-  .spinner { display: inline-block; width: 20px; height: 20px; border: 2px solid rgba(255,255,255,0.3); border-top-color: white; border-radius: 50%; animation: spin 0.7s linear infinite; }
-  @keyframes spin { to { transform: rotate(360deg); } }
-
-  /* Rx display card */
-  .rx-card { background: #FFFBEB; border: 1px solid #FDE68A; border-radius: 14px; padding: 24px; }
-  .rx-card-title { font-size: 13px; font-weight: 600; color: var(--warn); margin-bottom: 16px; }
-  .label-info { background: white; border: 1px solid var(--border); border-radius: 10px; padding: 14px; margin-top: 16px; font-size: 13px; line-height: 1.9; color: var(--ink); }
-  .label-info .label-heading { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 8px; font-weight: 600; }
-
-  @media (max-width: 640px) {
-    .pane-wrap { flex-direction: column; height: auto; }
-    .pane-left { width: 100%; }
-    .grid-2 { grid-template-columns: 1fr; }
-    .main { padding: 16px; }
-    header { padding: 0 16px; }
-  }
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#F5F3EF;--sur:#fff;--ink:#1C1917;--mut:#78716C;--bor:#E7E5E4;--acc:#2D6A4F;--acl:#D8F3DC;--wrn:#B45309;--wrl:#FEF3C7;--red:#DC2626;--rdl:#FEE2E2}
+body{font-family:'Palatino Linotype',Palatino,serif;background:var(--bg);color:var(--ink);min-height:100vh}
+input,select,textarea,button{font-family:inherit}button{cursor:pointer}
+header{background:var(--sur);border-bottom:1px solid var(--bor);padding:0 28px;height:56px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.logo{font-size:17px;font-weight:600}
+.badge{font-size:11px;padding:3px 10px;border-radius:20px;font-weight:500}
+.bp{background:#DBEAFE;color:#1E40AF}.bd{background:var(--acl);color:#166534}.bph{background:var(--wrl);color:var(--wrn)}
+.main{padding:24px 28px}
+.auth-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+.auth-box{background:var(--sur);border:1px solid var(--bor);border-radius:16px;padding:36px;width:100%;max-width:400px}
+.auth-logo{text-align:center;margin-bottom:28px}
+.auth-logo .ico{font-size:38px;margin-bottom:8px}
+.auth-logo h1{font-size:24px;font-weight:400}
+.auth-logo p{color:var(--mut);font-size:13px;margin-top:4px}
+.tabs{display:flex;border:1px solid var(--bor);border-radius:9px;overflow:hidden;margin-bottom:20px}
+.tab{flex:1;padding:9px;background:none;border:none;font-size:14px;color:var(--mut)}
+.tab.on{background:var(--acc);color:#fff;font-weight:600}
+.fld{margin-bottom:13px}
+.fld label{display:block;font-size:11px;color:var(--mut);text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px;font-weight:600}
+.fld input,.fld select,.fld textarea{width:100%;padding:9px 13px;border:1px solid var(--bor);border-radius:7px;font-size:14px;color:var(--ink);background:#FAFAF9;outline:none}
+.fld input:focus,.fld select:focus,.fld textarea:focus{border-color:var(--acc)}
+.fld textarea{resize:vertical}
+.btn{padding:10px 20px;border-radius:8px;font-size:14px;font-weight:600;border:none;display:inline-flex;align-items:center;gap:6px;transition:opacity .15s}
+.btn:hover{opacity:.85}.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn-p{background:var(--acc);color:#fff}.btn-g{background:transparent;color:var(--mut);border:1px solid var(--bor)}
+.btn-sm{padding:6px 13px;font-size:12px}.btn-w{width:100%;justify-content:center}
+.card{background:var(--sur);border:1px solid var(--bor);border-radius:13px;padding:20px 22px;margin-bottom:14px}
+.ct{font-size:15px;font-weight:600;margin-bottom:16px}
+.sl{font-size:11px;color:var(--mut);text-transform:uppercase;letter-spacing:.08em;font-weight:600;margin-bottom:9px}
+.panes{display:flex;gap:20px;height:calc(100vh - 104px)}
+.left{width:280px;min-width:240px;overflow-y:auto}.right{flex:1;overflow-y:auto}
+.pc{background:var(--sur);border:1px solid var(--bor);border-radius:9px;padding:11px 13px;margin-bottom:7px;cursor:pointer;transition:all .15s}
+.pc:hover{border-color:var(--acc)}.pc.on{background:#F0FDF4;border-color:#BBF7D0}
+.pill{font-size:11px;font-weight:600;padding:3px 9px;border-radius:20px;text-transform:uppercase}
+.pp{background:var(--wrl);color:#92400E}.pr{background:var(--acl);color:#1B4332}
+.fd{margin-bottom:13px}.fd .lb{font-size:11px;color:var(--mut);text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px}.fd .vl{font-size:14px;line-height:1.5}
+.rxt{width:100%;border-collapse:collapse;font-size:13px}
+.rxt th{text-align:left;padding:7px 9px;color:var(--mut);font-weight:600;font-size:11px;text-transform:uppercase;border-bottom:1px solid var(--bor)}
+.rxt td{padding:9px;border-bottom:1px solid var(--bor)}
+.ir{display:flex;gap:7px;margin-bottom:7px;align-items:center}
+.ir input,.ir select{padding:8px 9px;border:1px solid var(--bor);border-radius:7px;font-size:12px;background:#FAFAF9;outline:none;color:var(--ink)}
+.steps{display:flex;gap:7px;margin-bottom:7px}
+.sb{flex:1;height:4px;border-radius:2px;background:var(--bor)}.sb.on{background:var(--acc)}
+.slabs{display:flex;gap:7px;margin-bottom:20px}
+.slab{flex:1;font-size:11px;text-align:center;color:var(--mut)}.slab.on{color:var(--acc);font-weight:600}
+.pdrop{border:2px dashed var(--bor);border-radius:11px;padding:24px;text-align:center;cursor:pointer;background:#FAFAF9;transition:border-color .2s;margin-bottom:14px;display:block}
+.pdrop:hover{border-color:var(--acc)}
+.pgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-bottom:14px}
+.pthumb{position:relative;border-radius:9px;overflow:hidden;aspect-ratio:1;background:var(--bor)}
+.pthumb img{width:100%;height:100%;object-fit:cover}
+.prm{position:absolute;top:5px;right:5px;background:rgba(0,0,0,.6);border:none;border-radius:50%;width:22px;height:22px;color:#fff;font-size:14px;display:flex;align-items:center;justify-content:center}
+.toast{position:fixed;top:18px;right:18px;z-index:9999;padding:12px 18px;border-radius:9px;font-size:13px;box-shadow:0 6px 20px rgba(0,0,0,.15);max-width:300px}
+.ts{background:var(--acc);color:#fff}.te{background:var(--red);color:#fff}
+.empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:60%;color:var(--mut);text-align:center;padding:36px}
+.empty .ico{font-size:44px;opacity:.3;margin-bottom:12px}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:0 20px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:11px}
+.fb{display:flex;justify-content:space-between;align-items:center}
+.fg{display:flex;gap:9px;align-items:center}
+.mt14{margin-top:14px}.mt18{margin-top:18px}
+.rxc{background:#FFFBEB;border:1px solid #FDE68A;border-radius:13px;padding:22px}
+.rch{font-size:13px;font-weight:600;color:var(--wrn);margin-bottom:14px}
+.lbl{background:#fff;border:1px solid var(--bor);border-radius:9px;padding:13px;margin-top:14px;font-size:13px;line-height:1.9}
+.spin{display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:sp .7s linear infinite}
+.bspin{width:32px;height:32px;border:3px solid var(--bor);border-top-color:var(--acc);border-radius:50%;animation:sp .7s linear infinite}
+.lsc{min-height:100vh;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:14px}
+@keyframes sp{to{transform:rotate(360deg)}}
+.err{background:var(--rdl);color:var(--red);padding:9px 13px;border-radius:7px;font-size:13px;margin-bottom:13px}
+@media(max-width:620px){.panes{flex-direction:column;height:auto}.left{width:100%}.g2{grid-template-columns:1fr}.main{padding:14px}header{padding:0 14px}}
 </style>
 </head>
 <body>
 <div id="app"></div>
-
+<div id="toasts"></div>
 <script>
-const { createClient } = supabase;
-const SUPABASE_URL = 'https://rvyjrqzzufaqzykmulhu.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ2eWpycXp6dWZhcXp5a211bGh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMyOTU4ODQsImV4cCI6MjA4ODg3MTg4NH0.srxEkb6kiw0XRCj-pxlFrjG6F_ZUImd_XwpU2v6YUmI';
-const db = createClient(SUPABASE_URL, SUPABASE_KEY);
+var _s = supabase;
+var db = _s.createClient(
+  'https://rvyjrqzzufaqzykmulhu.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ2eWpycXp6dWZhcXp5a211bGh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMyOTU4ODQsImV4cCI6MjA4ODg3MTg4NH0.srxEkb6kiw0XRCj-pxlFrjG6F_ZUImd_XwpU2v6YUmI'
+);
 
-// ── State ──────────────────────────────────────────────────────────────────
-let state = {
-  user: null, profile: null, loading: true,
-  patients: [], selectedPatient: null,
-  authMode: 'login', authLoading: false,
-  toast: null, toastTimer: null,
-  step: 1,
-  form: { name:'', dob:'', phone:'', address:'', allergies:'', currentMeds:'', medHistory:'', chiefComplaint:'', photos:[] },
-  rx: { ingredients:[{name:'',strength:'',quantity:'',base:'',route:''}], frequency:'', duration:'', reviewIn:'' },
-  writingRx: false,
+var S = {
+  ready:false, user:null, profile:null,
+  authMode:'login', authError:'', authBusy:false,
+  patients:[], sel:null,
+  step:1, photos:[],
+  form:{name:'',dob:'',phone:'',address:'',allergies:'',meds:'',history:'',complaint:''},
+  rx:{ings:[{name:'',strength:'',qty:'',base:'',route:''}],freq:'',dur:'',rev:''},
+  writingRx:false
 };
 
-// ── Helpers ────────────────────────────────────────────────────────────────
-const age = (dob) => {
-  if (!dob) return '?';
-  const d = new Date(dob), now = new Date();
-  return now.getFullYear() - d.getFullYear() - (now < new Date(now.getFullYear(), d.getMonth(), d.getDate()) ? 1 : 0);
-};
-const fmt = (d) => d ? new Date(d).toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' }) : '—';
+function ageOf(d){if(!d)return'?';var b=new Date(d),n=new Date();return n.getFullYear()-b.getFullYear()-(n<new Date(n.getFullYear(),b.getMonth(),b.getDate())?1:0);}
+function fmtDate(d){return d?new Date(d).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'}):'—';}
+function el(id){return document.getElementById(id);}
+function set(changes){Object.assign(S,changes);render();}
 
-const showToast = (msg, type='success') => {
-  if (state.toastTimer) clearTimeout(state.toastTimer);
-  state.toast = { msg, type };
-  state.toastTimer = setTimeout(() => { state.toast = null; render(); }, 3500);
-  render();
-};
+function toast(msg,type){
+  type=type||'success';
+  var t=document.createElement('div');
+  t.className='toast '+(type==='error'?'te':'ts');
+  t.textContent=msg;
+  el('toasts').appendChild(t);
+  setTimeout(function(){t.remove();},3500);
+}
 
-const setState = (changes) => { Object.assign(state, changes); render(); };
+// Boot
+(function(){
+  db.auth.getSession().then(function(res){
+    var session=res.data.session;
+    if(session&&session.user){S.user=session.user;fetchProfile(session.user.id,function(){S.ready=true;render();});}
+    else{S.ready=true;render();}
+  }).catch(function(e){console.error('boot',e);S.ready=true;render();});
 
-// ── Auth ───────────────────────────────────────────────────────────────────
-db.auth.onAuthStateChange(async (event, session) => {
-  if (session?.user) {
-    state.user = session.user;
-    try {
-      const { data: profile } = await db.from('profiles').select('*').eq('id', session.user.id).single();
-      state.profile = profile;
-      if (profile?.role !== 'patient') await loadPatients();
-    } catch(e) {
-      console.log('Profile error:', e);
+  db.auth.onAuthStateChange(function(event,session){
+    if(event==='SIGNED_IN'&&session&&session.user){
+      S.user=session.user;
+      fetchProfile(session.user.id,function(){S.ready=true;render();});
+    } else if(event==='SIGNED_OUT'){
+      S.user=null;S.profile=null;S.patients=[];S.sel=null;S.ready=true;render();
     }
-  } else {
-    state.user = null; state.profile = null; state.patients = [];
-  }
-  state.loading = false;
-  render();
-});
+  });
+})();
 
-async function loadPatients() {
-  const { data } = await db.from('patients').select(`
-    *, 
-    patient_photos(*),
-    prescriptions(*, prescription_ingredients(*))
-  `).order('created_at', { ascending: false });
-  state.patients = data || [];
-  render();
+function fetchProfile(uid,cb){
+  db.from('profiles').select('*').eq('id',uid).maybeSingle().then(function(res){
+    if(res.data){
+      S.profile=res.data;
+      if(res.data.role!=='patient'){fetchPatients(function(){if(cb)cb();});}
+      else{if(cb)cb();}
+    } else {
+      var meta=(S.user&&S.user.user_metadata)||{};
+      db.from('profiles').upsert({id:uid,full_name:meta.full_name||S.user.email,role:meta.role||'patient'},{onConflict:'id'}).select().single().then(function(r2){
+        S.profile=r2.data;
+        if(cb)cb();
+      }).catch(function(e){console.error('profile upsert',e);if(cb)cb();});
+    }
+  }).catch(function(e){console.error('fetchProfile',e);if(cb)cb();});
 }
 
-async function handleLogin(e) {
-  e.preventDefault();
-  const email = document.getElementById('email').value;
-  const password = document.getElementById('password').value;
-  setState({ authLoading: true });
-  const { error } = await db.auth.signInWithPassword({ email, password });
-  if (error) { showToast(error.message, 'error'); setState({ authLoading: false }); }
+function fetchPatients(cb){
+  db.from('patients').select('*,patient_photos(*),prescriptions(*,prescription_ingredients(*))').order('created_at',{ascending:false}).then(function(res){
+    S.patients=res.data||[];
+    if(cb)cb();
+  }).catch(function(e){console.error('fetchPatients',e);S.patients=[];if(cb)cb();});
 }
 
-async function handleSignup(e) {
-  e.preventDefault();
-  const email = document.getElementById('email').value;
-  const password = document.getElementById('password').value;
-  const name = document.getElementById('signup-name').value;
-  const role = document.getElementById('signup-role').value;
-  setState({ authLoading: true });
-  const { error } = await db.auth.signUp({ email, password, options: { data: { full_name: name, role } } });
-  if (error) { showToast(error.message, 'error'); setState({ authLoading: false }); }
-  else { showToast('Account created! Please log in.'); setState({ authLoading: false, authMode: 'login' }); }
+function doLogin(){
+  var email=el('a-email')&&el('a-email').value.trim();
+  var pass=el('a-pass')&&el('a-pass').value;
+  if(!email||!pass){set({authError:'Please enter email and password'});return;}
+  set({authBusy:true,authError:''});
+  db.auth.signInWithPassword({email:email,password:pass}).then(function(res){
+    if(res.error){set({authBusy:false,authError:res.error.message});}
+    else{set({authBusy:false});}
+  });
 }
 
-async function handleLogout() {
-  await db.auth.signOut();
-  setState({ user: null, profile: null, patients: [], selectedPatient: null });
+function doSignup(){
+  var email=el('a-email')&&el('a-email').value.trim();
+  var pass=el('a-pass')&&el('a-pass').value;
+  var name=el('a-name')&&el('a-name').value.trim();
+  var role=el('a-role')&&el('a-role').value;
+  if(!email||!pass||!name){set({authError:'Please fill all fields'});return;}
+  if(pass.length<6){set({authError:'Password must be at least 6 characters'});return;}
+  set({authBusy:true,authError:''});
+  db.auth.signUp({email:email,password:pass,options:{data:{full_name:name,role:role}}}).then(function(res){
+    if(res.error){set({authBusy:false,authError:res.error.message});return;}
+    if(res.data&&res.data.user){
+      db.from('profiles').upsert({id:res.data.user.id,full_name:name,role:role},{onConflict:'id'}).then(function(){
+        toast('Account created! Logging in...');
+        set({authBusy:false});
+        db.auth.signInWithPassword({email:email,password:pass});
+      });
+    }
+  });
 }
 
-// ── Patient Form Submit ────────────────────────────────────────────────────
-async function submitPatientForm() {
-  const f = state.form;
-  const { data: patient, error } = await db.from('patients').insert({
-    user_id: state.user.id,
-    full_name: f.name, dob: f.dob, phone: f.phone, address: f.address,
-    allergies: f.allergies, current_meds: f.currentMeds,
-    med_history: f.medHistory, chief_complaint: f.chiefComplaint,
-  }).select().single();
-
-  if (error) { showToast('Error submitting form. Try again.', 'error'); return; }
-
-  // Upload photos as base64 URLs stored directly (free, no storage bucket needed)
-  for (const photo of f.photos) {
-    await db.from('patient_photos').insert({ patient_id: patient.id, file_name: photo.name, file_url: photo.url });
-  }
-
-  showToast('Form submitted to doctor successfully!');
-  setState({ step: 'done' });
+function doLogout(){
+  db.auth.signOut().then(function(){
+    set({user:null,profile:null,patients:[],sel:null,step:1,photos:[],writingRx:false,ready:true});
+  });
 }
 
-// ── Prescription Submit ────────────────────────────────────────────────────
-async function submitPrescription() {
-  const rx = state.rx;
-  const pid = state.selectedPatient.id;
-
-  const { data: prescription, error } = await db.from('prescriptions').insert({
-    patient_id: pid, frequency: rx.frequency, duration: rx.duration, review_in: rx.reviewIn,
-  }).select().single();
-
-  if (error) { showToast('Error saving prescription.', 'error'); return; }
-
-  const ingredients = rx.ingredients.map((ing, i) => ({ ...ing, prescription_id: prescription.id, sort_order: i }));
-  await db.from('prescription_ingredients').insert(ingredients);
-  await db.from('patients').update({ status: 'prescribed' }).eq('id', pid);
-
-  showToast(`Prescription sent for ${state.selectedPatient.full_name}`);
-  setState({ writingRx: false, rx: { ingredients:[{name:'',strength:'',quantity:'',base:'',route:''}], frequency:'', duration:'', reviewIn:'' } });
-  await loadPatients();
-  const updated = state.patients.find(p => p.id === pid);
-  setState({ selectedPatient: updated });
+function saveStep1(){
+  S.form.name=(el('f-name')||{value:''}).value;
+  S.form.dob=(el('f-dob')||{value:''}).value;
+  S.form.phone=(el('f-phone')||{value:''}).value;
+  S.form.address=(el('f-addr')||{value:''}).value;
+  set({step:2});
+}
+function saveStep2(){
+  S.form.allergies=(el('f-allerg')||{value:''}).value;
+  S.form.meds=(el('f-meds')||{value:''}).value;
+  S.form.history=(el('f-hist')||{value:''}).value;
+  S.form.complaint=(el('f-complaint')||{value:''}).value;
+  set({step:3});
 }
 
-// ── Render ─────────────────────────────────────────────────────────────────
-function render() {
-  const app = document.getElementById('app');
-  if (state.loading) { app.innerHTML = `<div class="auth-wrap"><div style="text-align:center"><div class="spinner" style="border-color:rgba(0,0,0,0.1);border-top-color:var(--accent);width:32px;height:32px"></div><p style="margin-top:16px;color:var(--muted);font-size:14px">Loading...</p></div></div>`; return; }
-  if (!state.user) { app.innerHTML = renderAuth(); bindAuth(); return; }
-  
-  const role = state.profile?.role;
-  app.innerHTML = renderShell(
-    role === 'patient' ? renderPatientPortal() :
-    role === 'doctor' ? renderDoctorDash() :
-    role === 'pharmacist' ? renderPharmacistView() :
-    `<div class="empty"><div class="icon">⚠️</div><p>Unknown role. Contact admin.</p></div>`
-  );
-  bindMain();
-  if (state.toast) {
-    const t = document.createElement('div');
-    t.className = `toast toast-${state.toast.type}`;
-    t.textContent = state.toast.msg;
-    document.body.appendChild(t);
-    setTimeout(() => t.remove(), 3500);
-  }
+function submitForm(){
+  var f=S.form;
+  db.from('patients').insert({
+    user_id:S.user.id,full_name:f.name,dob:f.dob||null,phone:f.phone,
+    address:f.address,allergies:f.allergies,current_meds:f.meds,
+    med_history:f.history,chief_complaint:f.complaint
+  }).select().single().then(function(res){
+    if(res.error){toast('Error submitting. Try again.','error');return;}
+    var pid=res.data.id;
+    var uploads=S.photos.map(function(p){return db.from('patient_photos').insert({patient_id:pid,file_name:p.name,file_url:p.url});});
+    Promise.all(uploads).then(function(){toast('Submitted to doctor!');set({step:'done'});});
+  });
 }
 
-// ── Auth UI ────────────────────────────────────────────────────────────────
-function renderAuth() {
-  const isLogin = state.authMode === 'login';
-  return `
-  <div class="auth-wrap">
-    <div class="auth-card">
-      <div class="auth-logo">
-        <div class="icon">🌿</div>
-        <h1>RxCompound</h1>
-        <p>Personalized compounding pharmacy</p>
-      </div>
-      <div class="auth-tabs">
-        <button class="auth-tab ${isLogin?'active':''}" onclick="setState({authMode:'login'})">Login</button>
-        <button class="auth-tab ${!isLogin?'active':''}" onclick="setState({authMode:'signup'})">Create Account</button>
-      </div>
-      <form id="auth-form">
-        ${!isLogin ? `
-        <div class="field"><label>Full Name</label><input id="signup-name" type="text" placeholder="Your full name" required /></div>
-        <div class="field"><label>I am a</label>
-          <select id="signup-role">
-            <option value="patient">Patient</option>
-            <option value="doctor">Doctor</option>
-            <option value="pharmacist">Pharmacist</option>
-          </select>
-        </div>` : ''}
-        <div class="field"><label>Email</label><input id="email" type="email" placeholder="your@email.com" required /></div>
-        <div class="field"><label>Password</label><input id="password" type="password" placeholder="••••••••" required /></div>
-        <button type="submit" class="btn btn-primary btn-full mt-20">
-          ${state.authLoading ? '<span class="spinner"></span>' : (isLogin ? 'Login →' : 'Create Account →')}
-        </button>
-      </form>
-    </div>
-  </div>`;
-}
+function removePhoto(i){S.photos=S.photos.filter(function(_,x){return x!==i;});render();}
 
-function bindAuth() {
-  const form = document.getElementById('auth-form');
-  if (form) form.addEventListener('submit', state.authMode === 'login' ? handleLogin : handleSignup);
-}
+function setIng(i,k,v){S.rx.ings[i][k]=v;}
+function addIng(){S.rx.ings.push({name:'',strength:'',qty:'',base:'',route:''});render();}
+function remIng(i){if(S.rx.ings.length>1){S.rx.ings=S.rx.ings.filter(function(_,x){return x!==i;});render();}}
 
-// ── Shell ──────────────────────────────────────────────────────────────────
-function renderShell(content) {
-  const role = state.profile?.role || '';
-  const badgeClass = `role-badge badge-${role}`;
-  const icons = { patient:'👤', doctor:'🩺', pharmacist:'⚗️' };
-  const labels = { patient:'Patient Portal', doctor:'Doctor Dashboard', pharmacist:'Pharmacist View' };
-  return `
-  <div class="app">
-    <header>
-      <div class="header-left">
-        <span style="font-size:20px">🌿</span>
-        <span class="logo">RxCompound</span>
-        <span class="${badgeClass}">${icons[role]} ${labels[role]||role}</span>
-      </div>
-      <div class="flex-gap">
-        <span style="font-size:13px;color:var(--muted)">${state.profile?.full_name || state.user?.email}</span>
-        <button class="btn btn-ghost btn-sm" onclick="handleLogout()">Logout</button>
-      </div>
-    </header>
-    <div class="main">${content}</div>
-  </div>`;
-}
-
-// ── Patient Portal ─────────────────────────────────────────────────────────
-function renderPatientPortal() {
-  if (state.step === 'done') return `
-    <div style="max-width:480px;margin:80px auto;text-align:center">
-      <div style="font-size:56px;margin-bottom:20px">✅</div>
-      <h2 style="font-size:22px;font-weight:500;margin-bottom:10px">Form Submitted!</h2>
-      <p style="color:var(--muted);font-size:14px;line-height:1.7">Your health details have been sent to the doctor. You will be contacted once your prescription is ready.</p>
-    </div>`;
-
-  const steps = ['Personal Details', 'Medical Info', 'Photos'];
-  const s = state.step;
-  const f = state.form;
-
-  return `
-  <div style="max-width:560px;margin:0 auto">
-    <div class="steps">${[1,2,3].map(n=>`<div class="step-bar ${s>=n?'active':''}"></div>`).join('')}</div>
-    <div class="step-labels">${steps.map((l,i)=>`<div class="step-label ${s===i+1?'active':''}">${l}</div>`).join('')}</div>
-
-    ${s===1 ? `
-    <div class="card">
-      <div class="card-title">👤 Personal Details</div>
-      <div class="field"><label>Full Name</label><input id="f-name" value="${f.name}" placeholder="As on Aadhar" /></div>
-      <div class="field"><label>Date of Birth</label><input id="f-dob" type="date" value="${f.dob}" /></div>
-      <div class="field"><label>Phone Number</label><input id="f-phone" value="${f.phone}" placeholder="10-digit mobile" /></div>
-      <div class="field"><label>Home Address</label><textarea id="f-address" rows="2" placeholder="Full address with PIN code">${f.address}</textarea></div>
-      <div class="mt-20" style="text-align:right"><button class="btn btn-primary" onclick="saveStep1()">Next →</button></div>
-    </div>` : ''}
-
-    ${s===2 ? `
-    <div class="card">
-      <div class="card-title">🩺 Medical Information</div>
-      <div class="field"><label>Known Allergies</label><textarea id="f-allergies" rows="2" placeholder="e.g. Penicillin, or None known">${f.allergies}</textarea></div>
-      <div class="field"><label>Current Medications</label><textarea id="f-meds" rows="2" placeholder="List all medicines you currently take">${f.currentMeds}</textarea></div>
-      <div class="field"><label>Medical History</label><textarea id="f-history" rows="2" placeholder="Past conditions, surgeries, etc.">${f.medHistory}</textarea></div>
-      <div class="field"><label>Chief Complaint</label><textarea id="f-complaint" rows="3" placeholder="Describe your main concern in detail">${f.chiefComplaint}</textarea></div>
-      <div class="flex-between mt-20">
-        <button class="btn btn-ghost" onclick="setState({step:1})">← Back</button>
-        <button class="btn btn-primary" onclick="saveStep2()">Next →</button>
-      </div>
-    </div>` : ''}
-
-    ${s===3 ? `
-    <div class="card">
-      <div class="card-title">📷 Photos of Condition</div>
-      <p style="font-size:13px;color:var(--muted);margin-bottom:18px;line-height:1.6">Upload clear photos of the affected area. Good lighting helps the doctor assess your condition accurately.</p>
-      <label class="photo-drop" id="photo-label">
-        <input type="file" accept="image/*" multiple id="photo-input" style="display:none" />
-        <div style="font-size:32px;margin-bottom:10px">📤</div>
-        <div style="font-size:14px;font-weight:500;margin-bottom:4px">Tap to upload photos</div>
-        <div style="font-size:12px;color:var(--muted)">JPG, PNG · Multiple files allowed</div>
-      </label>
-      ${f.photos.length > 0 ? `
-      <div class="photo-grid">${f.photos.map((p,i)=>`
-        <div class="photo-thumb">
-          <img src="${p.url}" />
-          <button class="photo-remove" onclick="removePhoto(${i})">×</button>
-        </div>`).join('')}
-      </div>` : `<p style="font-size:12px;color:var(--muted);text-align:center;margin-bottom:12px">No photos yet — you can skip if not applicable</p>`}
-      <div class="flex-between mt-20">
-        <button class="btn btn-ghost" onclick="setState({step:2})">← Back</button>
-        <button class="btn btn-primary" onclick="submitPatientForm()">Submit to Doctor ✓</button>
-      </div>
-    </div>` : ''}
-  </div>`;
-}
-
-function saveStep1() {
-  state.form.name = document.getElementById('f-name').value;
-  state.form.dob = document.getElementById('f-dob').value;
-  state.form.phone = document.getElementById('f-phone').value;
-  state.form.address = document.getElementById('f-address').value;
-  setState({ step: 2 });
-}
-function saveStep2() {
-  state.form.allergies = document.getElementById('f-allergies').value;
-  state.form.currentMeds = document.getElementById('f-meds').value;
-  state.form.medHistory = document.getElementById('f-history').value;
-  state.form.chiefComplaint = document.getElementById('f-complaint').value;
-  setState({ step: 3 });
-}
-function removePhoto(i) {
-  state.form.photos = state.form.photos.filter((_,idx)=>idx!==i);
-  render();
-}
-
-// ── Doctor Dashboard ───────────────────────────────────────────────────────
-function renderDoctorDash() {
-  const patients = state.patients;
-  const sel = state.selectedPatient;
-  const pending = patients.filter(p=>p.status==='pending');
-  const prescribed = patients.filter(p=>p.status==='prescribed');
-
-  return `
-  <div class="pane-wrap">
-    <div class="pane-left">
-      ${pending.length>0 ? `<div class="section-label">Awaiting Prescription (${pending.length})</div>${pending.map(p=>patientCard(p,sel)).join('')}` : ''}
-      <div class="section-label">Prescribed (${prescribed.length})</div>
-      ${prescribed.map(p=>patientCard(p,sel)).join('')}
-      ${patients.length===0?`<p style="font-size:13px;color:var(--muted)">No patients yet.</p>`:''}
-    </div>
-    <div class="pane-right">
-      ${sel ? renderPatientDetail() : `<div class="empty"><div class="icon">🩺</div><p>Select a patient to review</p></div>`}
-    </div>
-  </div>`;
-}
-
-function renderPatientDetail() {
-  const p = state.patients.find(x=>x.id===state.selectedPatient?.id) || state.selectedPatient;
-  if (!p) return '';
-  const rx = p.prescriptions?.[0];
-  const photos = p.patient_photos || [];
-
-  return `
-  <div style="max-width:640px">
-    <div class="card">
-      <div class="flex-between mb-0">
-        <div>
-          <div style="font-size:20px;font-weight:600;margin-bottom:4px">${p.full_name}</div>
-          <div style="font-size:13px;color:var(--muted)">Age ${age(p.dob)} · DOB ${fmt(p.dob)} · ${p.phone||'—'}</div>
-          <div style="font-size:13px;color:var(--muted)">${p.address||'—'}</div>
-        </div>
-        <span class="pill pill-${p.status}">${p.status==='pending'?'Awaiting Rx':'Prescribed'}</span>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="grid-2">
-        ${fieldDisplay('Chief Complaint', p.chief_complaint)}
-        ${fieldDisplay('Known Allergies ⚠️', p.allergies)}
-        ${fieldDisplay('Current Medications', p.current_meds)}
-        ${fieldDisplay('Medical History', p.med_history)}
-        ${fieldDisplay('Submitted', fmt(p.submitted_at))}
-      </div>
-    </div>
-
-    ${photos.length>0 ? `
-    <div class="card">
-      <div class="card-title">📷 Patient Photos (${photos.length})</div>
-      <div class="photo-grid">${photos.map(ph=>`<div class="photo-thumb"><img src="${ph.file_url}" /></div>`).join('')}
-      </div>
-    </div>` : ''}
-
-    ${rx ? `
-    <div class="rx-card">
-      <div class="rx-card-title">✅ Prescription Issued — ${fmt(rx.prescribed_at)}</div>
-      <table class="rx-table">
-        <thead><tr><th>Ingredient</th><th>Strength</th><th>Quantity</th><th>Base</th><th>Route</th></tr></thead>
-        <tbody>${(rx.prescription_ingredients||[]).map(i=>`<tr><td><strong>${i.name}</strong></td><td>${i.strength}</td><td>${i.quantity}</td><td>${i.base||'—'}</td><td>${i.route||'—'}</td></tr>`).join('')}</tbody>
-      </table>
-      <div class="grid-3 mt-16">
-        ${fieldDisplay('Frequency', rx.frequency)}
-        ${fieldDisplay('Duration', rx.duration)}
-        ${fieldDisplay('Review In', rx.review_in)}
-      </div>
-    </div>` : ''}
-
-    ${p.status==='pending' && !state.writingRx ? `
-    <div style="text-align:center;padding:20px 0">
-      <button class="btn btn-primary" onclick="setState({writingRx:true})">✍️ Write Prescription</button>
-    </div>` : ''}
-
-    ${state.writingRx ? renderRxForm() : ''}
-  </div>`;
-}
-
-function renderRxForm() {
-  const rx = state.rx;
-  return `
-  <div class="card" style="border:1.5px solid var(--accent)">
-    <div class="card-title">✍️ Write Prescription</div>
-    <div style="display:flex;gap:8px;margin-bottom:6px;padding-right:32px">
-      ${['Ingredient / API','Strength','Quantity','Base / Vehicle','Route'].map((h,i)=>`<div style="flex:${i===0?2:1};font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.07em;font-weight:600">${h}</div>`).join('')}
-    </div>
-    <div id="ing-rows">
-      ${rx.ingredients.map((ing,i)=>`
-      <div class="ing-row" id="ing-${i}">
-        <input style="flex:2" placeholder="e.g. Minoxidil" value="${ing.name}" onchange="setIng(${i},'name',this.value)" />
-        <input style="flex:1" placeholder="e.g. 5%" value="${ing.strength}" onchange="setIng(${i},'strength',this.value)" />
-        <input style="flex:1" placeholder="e.g. 60ml" value="${ing.quantity}" onchange="setIng(${i},'quantity',this.value)" />
-        <input style="flex:1" placeholder="e.g. Gel" value="${ing.base||''}" onchange="setIng(${i},'base',this.value)" />
-        <select style="flex:1" onchange="setIng(${i},'route',this.value)">
-          <option value="">Select</option>
-          ${['Topical','Oral','Sublingual','Nasal','Rectal','Vaginal','Ophthalmic'].map(r=>`<option ${ing.route===r?'selected':''}>${r}</option>`).join('')}
-        </select>
-        <button onclick="removeIng(${i})" style="background:none;border:none;color:#EF4444;font-size:20px;padding:2px 4px;line-height:1">×</button>
-      </div>`).join('')}
-    </div>
-    <button onclick="addIng()" style="background:none;border:1px dashed var(--border);border-radius:8px;padding:8px 18px;font-size:13px;color:var(--muted);font-family:inherit;margin-bottom:20px;display:block;width:100%">+ Add Ingredient</button>
-    <div class="grid-3">
-      <div class="field"><label>Frequency</label>
-        <select onchange="state.rx.frequency=this.value">
-          <option value="">Select</option>
-          ${['Once daily','Twice daily','Three times daily','Every night','Every morning','Alternate days','Weekly','As needed'].map(f=>`<option ${rx.frequency===f?'selected':''}>${f}</option>`).join('')}
-        </select>
-      </div>
-      <div class="field"><label>Duration</label><input value="${rx.duration}" placeholder="e.g. 3 months" onchange="state.rx.duration=this.value" /></div>
-      <div class="field"><label>Review In</label><input value="${rx.reviewIn}" placeholder="e.g. 6 weeks" onchange="state.rx.reviewIn=this.value" /></div>
-    </div>
-    <div class="flex-gap mt-16">
-      <button class="btn btn-primary" onclick="submitPrescription()">Send to Pharmacist ✓</button>
-      <button class="btn btn-ghost" onclick="setState({writingRx:false})">Cancel</button>
-    </div>
-  </div>`;
-}
-
-function setIng(i, key, val) { state.rx.ingredients[i][key] = val; }
-function addIng() { state.rx.ingredients.push({name:'',strength:'',quantity:'',base:'',route:''}); render(); }
-function removeIng(i) { state.rx.ingredients = state.rx.ingredients.filter((_,idx)=>idx!==i); render(); }
-
-// ── Pharmacist View ────────────────────────────────────────────────────────
-function renderPharmacistView() {
-  const prescribed = state.patients.filter(p=>p.status==='prescribed');
-  const sel = state.selectedPatient;
-
-  return `
-  <div class="pane-wrap">
-    <div class="pane-left">
-      <div class="section-label">${prescribed.length} Prescription${prescribed.length!==1?'s':''} Ready</div>
-      ${prescribed.length===0?`<p style="font-size:13px;color:var(--muted)">No prescriptions yet.</p>`:''}
-      ${prescribed.map(p=>patientCard(p,sel)).join('')}
-    </div>
-    <div class="pane-right">
-      ${sel && sel.prescriptions?.[0] ? renderPharmacistDetail() : `<div class="empty"><div class="icon">⚗️</div><p>Select a prescription to view compounding details</p></div>`}
-    </div>
-  </div>`;
-}
-
-function renderPharmacistDetail() {
-  const p = state.patients.find(x=>x.id===state.selectedPatient?.id) || state.selectedPatient;
-  if (!p) return '';
-  const rx = p.prescriptions?.[0];
-  if (!rx) return '';
-  const ings = rx.prescription_ingredients || [];
-
-  return `
-  <div style="max-width:640px">
-    <div class="card">
-      <div class="flex-between mb-0" style="margin-bottom:16px">
-        <div>
-          <div style="font-size:20px;font-weight:600;margin-bottom:4px">${p.full_name}</div>
-          <div style="font-size:13px;color:var(--muted)">Age ${age(p.dob)} · DOB ${fmt(p.dob)}</div>
-          <div style="font-size:13px;color:var(--muted)">${p.address||'—'}</div>
-          <div style="font-size:13px;color:var(--muted)">📞 ${p.phone||'—'}</div>
-        </div>
-        <span class="pill pill-prescribed">Prescribed</span>
-      </div>
-      <div style="border-top:1px solid var(--border);padding-top:16px">
-        <div class="grid-2">
-          ${fieldDisplay('Allergies ⚠️', p.allergies)}
-          ${fieldDisplay('Current Medications', p.current_meds)}
-          ${fieldDisplay('Chief Complaint', p.chief_complaint)}
-        </div>
-      </div>
-    </div>
-
-    <div class="rx-card">
-      <div class="rx-card-title">⚗️ Compounding Prescription · ${fmt(rx.prescribed_at)}</div>
-      <table class="rx-table">
-        <thead><tr>
-          <th>Ingredient / API</th><th>Strength</th><th>Quantity</th><th>Base / Vehicle</th><th>Route</th>
-        </tr></thead>
-        <tbody>${ings.map((ing,i)=>`
-          <tr style="background:${i%2===0?'white':'#FFFBEB'}">
-            <td><strong>${ing.name}</strong></td>
-            <td>${ing.strength}</td>
-            <td>${ing.quantity}</td>
-            <td>${ing.base||'—'}</td>
-            <td>${ing.route||'—'}</td>
-          </tr>`).join('')}
-        </tbody>
-      </table>
-      <div class="grid-3 mt-16">
-        ${fieldDisplay('Frequency', rx.frequency)}
-        ${fieldDisplay('Duration', rx.duration)}
-        ${fieldDisplay('Review In', rx.review_in)}
-      </div>
-      <div class="label-info">
-        <div class="label-heading">🏷️ Label Info</div>
-        <strong>Patient:</strong> ${p.full_name}<br/>
-        <strong>DOB:</strong> ${fmt(p.dob)}<br/>
-        <strong>Address:</strong> ${p.address||'—'}<br/>
-        <strong>Rx Date:</strong> ${fmt(rx.prescribed_at)}<br/>
-        <strong>Formulation:</strong> ${ings.map(i=>`${i.name} ${i.strength}`).join(' + ')}<br/>
-        <strong>Frequency:</strong> ${rx.frequency||'—'}<br/>
-        <strong>Duration:</strong> ${rx.duration||'—'}
-      </div>
-    </div>
-  </div>`;
-}
-
-// ── Shared helpers ─────────────────────────────────────────────────────────
-function patientCard(p, sel) {
-  const isSelected = sel?.id === p.id;
-  return `<div class="patient-card ${isSelected?'selected':''}" onclick="selectPatient('${p.id}')">
-    <div class="flex-between"><span class="patient-name">${p.full_name}</span><span class="pill pill-${p.status}">${p.status==='pending'?'Pending':'Rx Done'}</span></div>
-    <div class="patient-meta">Age ${age(p.dob)} · ${fmt(p.submitted_at)}</div>
-    <div class="patient-complaint">${p.chief_complaint||'—'}</div>
-  </div>`;
-}
-
-function fieldDisplay(label, value) {
-  return `<div class="field-display"><div class="label">${label}</div><div class="value">${value||'—'}</div></div>`;
-}
-
-function selectPatient(id) {
-  const p = state.patients.find(x=>x.id===id);
-  setState({ selectedPatient: p, writingRx: false });
-}
-
-function bindMain() {
-  const photoInput = document.getElementById('photo-input');
-  if (photoInput) {
-    photoInput.addEventListener('change', (e) => {
-      const files = Array.from(e.target.files);
-      const readers = files.map(file => new Promise(res => {
-        const r = new FileReader();
-        r.onload = () => res({ name: file.name, url: r.result });
-        r.readAsDataURL(file);
-      }));
-      Promise.all(readers).then(newPhotos => {
-        state.form.photos = [...state.form.photos, ...newPhotos];
-        render();
+function submitRx(){
+  var rx=S.rx,pid=S.sel.id,selName=S.sel.full_name;
+  db.from('prescriptions').insert({patient_id:pid,frequency:rx.freq,duration:rx.dur,review_in:rx.rev}).select().single().then(function(res){
+    if(res.error){toast('Error saving prescription.','error');return;}
+    var rxid=res.data.id;
+    var ings=rx.ings.map(function(ing,i){return{prescription_id:rxid,name:ing.name,strength:ing.strength,quantity:ing.qty,base:ing.base,route:ing.route,sort_order:i};});
+    db.from('prescription_ingredients').insert(ings).then(function(){
+      db.from('patients').update({status:'prescribed'}).eq('id',pid).then(function(){
+        toast('Prescription sent for '+selName);
+        S.rx={ings:[{name:'',strength:'',qty:'',base:'',route:''}],freq:'',dur:'',rev:''};
+        S.writingRx=false;
+        fetchPatients(function(){
+          S.sel=S.patients.find(function(p){return p.id===pid;})||null;
+          render();
+        });
       });
     });
-  }
+  });
 }
 
-// ── Boot ───────────────────────────────────────────────────────────────────
-render();
+function refreshPatients(){fetchPatients(function(){render();toast('Refreshed!');});}
+function selectPatient(id){S.sel=S.patients.find(function(p){return p.id===id;})||null;S.writingRx=false;render();}
+
+function fd(label,value){
+  return '<div class="fd"><div class="lb">'+label+'</div><div class="vl">'+(value||'—')+'</div></div>';
+}
+
+function pCard(p){
+  var sel=S.sel&&S.sel.id===p.id;
+  return '<div class="pc'+(sel?' on':'')+'" onclick="selectPatient(\''+p.id+'\')">'
+    +'<div class="fb"><span style="font-weight:600;font-size:14px">'+p.full_name+'</span>'
+    +'<span class="pill '+(p.status==='pending'?'pp':'pr')+'">'+(p.status==='pending'?'Pending':'Done')+'</span></div>'
+    +'<div style="font-size:12px;color:var(--mut);margin-top:3px">Age '+ageOf(p.dob)+' · '+fmtDate(p.submitted_at)+'</div>'
+    +'<div style="font-size:12px;color:var(--mut);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+(p.chief_complaint||'—')+'</div>'
+    +'</div>';
+}
+
+function render(){
+  var app=el('app');
+  if(!S.ready){
+    app.innerHTML='<div class="lsc"><div class="bspin"></div><p style="color:var(--mut);font-size:14px;margin-top:8px">Loading...</p></div>';
+    return;
+  }
+  if(!S.user||!S.profile){app.innerHTML=renderAuth();return;}
+  var role=S.profile.role;
+  var roleLabel={patient:'👤 Patient',doctor:'🩺 Doctor',pharmacist:'⚗️ Pharmacist'}[role]||role;
+  var badgeClass={patient:'bp',doctor:'bd',pharmacist:'bph'}[role]||'';
+  var html='<header>'
+    +'<div class="fg"><span style="font-size:19px">🌿</span><span class="logo">RxCompound</span>'
+    +'<span class="badge '+badgeClass+'">'+roleLabel+'</span></div>'
+    +'<div class="fg"><span style="font-size:13px;color:var(--mut)">'+(S.profile.full_name||S.user.email)+'</span>'
+    +'<button class="btn btn-g btn-sm" onclick="doLogout()">Logout</button></div>'
+    +'</header>'
+    +'<div class="main">'+(role==='patient'?renderPatient():role==='doctor'?renderDoctor():role==='pharmacist'?renderPharmacist():'<div class="empty"><div class="ico">⚠️</div><p>Unknown role.</p></div>')+'</div>';
+  app.innerHTML=html;
+  bindEvents();
+}
+
+function renderAuth(){
+  var login=S.authMode==='login';
+  var html='<div class="auth-wrap"><div class="auth-box">'
+    +'<div class="auth-logo"><div class="ico">🌿</div><h1>RxCompound</h1><p>Compounding pharmacy portal</p></div>'
+    +'<div class="tabs">'
+    +'<button class="tab'+(login?' on':'')+'" onclick="set({authMode:\'login\',authError:\'\'})">Login</button>'
+    +'<button class="tab'+(!login?' on':'')+'" onclick="set({authMode:\'signup\',authError:\'\'})">Create Account</button>'
+    +'</div>'
+    +(S.authError?'<div class="err">'+S.authError+'</div>':'')
+    +(!login?'<div class="fld"><label>Full Name</label><input id="a-name" placeholder="Your full name"/></div><div class="fld"><label>I am a</label><select id="a-role"><option value="patient">Patient</option><option value="doctor">Doctor</option><option value="pharmacist">Pharmacist</option></select></div>':'')
+    +'<div class="fld"><label>Email</label><input id="a-email" type="email" placeholder="your@email.com"/></div>'
+    +'<div class="fld"><label>Password</label><input id="a-pass" type="password" placeholder="Min 6 characters"/></div>'
+    +'<button class="btn btn-p btn-w mt18"'+(S.authBusy?' disabled':'')+' onclick="'+(login?'doLogin()':'doSignup()')+'">'+( S.authBusy?'<span class="spin"></span> Please wait...':(login?'Login →':'Create Account →'))+'</button>'
+    +'</div></div>';
+  return html;
+}
+
+function renderPatient(){
+  if(S.step==='done'){
+    return '<div style="max-width:460px;margin:70px auto;text-align:center">'
+      +'<div style="font-size:52px;margin-bottom:18px">✅</div>'
+      +'<h2 style="font-size:21px;font-weight:500;margin-bottom:9px">Submitted!</h2>'
+      +'<p style="color:var(--mut);font-size:14px;line-height:1.7">Your details have been sent to the doctor. You will be contacted once your prescription is ready.</p>'
+      +'</div>';
+  }
+  var s=S.step,f=S.form;
+  var stepsHtml='<div class="steps"><div class="sb'+(s>=1?' on':'')+'"></div><div class="sb'+(s>=2?' on':'')+'"></div><div class="sb'+(s>=3?' on':'')+'"></div></div>';
+  var slabsHtml='<div class="slabs"><div class="slab'+(s===1?' on':'')+'">Personal</div><div class="slab'+(s===2?' on':'')+'">Medical</div><div class="slab'+(s===3?' on':'')+'">Photos</div></div>';
+  var body='';
+  if(s===1){
+    body='<div class="card"><div class="ct">👤 Personal Details</div>'
+      +'<div class="fld"><label>Full Name</label><input id="f-name" value="'+f.name+'" placeholder="As on Aadhar"/></div>'
+      +'<div class="fld"><label>Date of Birth</label><input id="f-dob" type="date" value="'+f.dob+'"/></div>'
+      +'<div class="fld"><label>Phone</label><input id="f-phone" value="'+f.phone+'" placeholder="10-digit mobile"/></div>'
+      +'<div class="fld"><label>Address</label><textarea id="f-addr" rows="2" placeholder="Full address with PIN">'+f.address+'</textarea></div>'
+      +'<div class="mt18" style="text-align:right"><button class="btn btn-p" onclick="saveStep1()">Next →</button></div>'
+      +'</div>';
+  } else if(s===2){
+    body='<div class="card"><div class="ct">🩺 Medical Information</div>'
+      +'<div class="fld"><label>Known Allergies</label><textarea id="f-allerg" rows="2" placeholder="e.g. Penicillin or None known">'+f.allergies+'</textarea></div>'
+      +'<div class="fld"><label>Current Medications</label><textarea id="f-meds" rows="2" placeholder="List all medicines you take">'+f.meds+'</textarea></div>'
+      +'<div class="fld"><label>Medical History</label><textarea id="f-hist" rows="2" placeholder="Past conditions, surgeries...">'+f.history+'</textarea></div>'
+      +'<div class="fld"><label>Chief Complaint</label><textarea id="f-complaint" rows="3" placeholder="Describe your main concern">'+f.complaint+'</textarea></div>'
+      +'<div class="fb mt18"><button class="btn btn-g" onclick="set({step:1})">← Back</button><button class="btn btn-p" onclick="saveStep2()">Next →</button></div>'
+      +'</div>';
+  } else if(s===3){
+    var thumbs='';
+    if(S.photos.length>0){
+      thumbs='<div class="pgrid">';
+      for(var i=0;i<S.photos.length;i++){
+        thumbs+='<div class="pthumb"><img src="'+S.photos[i].url+'"/><button class="prm" onclick="removePhoto('+i+')">×</button></div>';
+      }
+      thumbs+='</div>';
+    } else {
+      thumbs='<p style="font-size:12px;color:var(--mut);text-align:center;margin-bottom:11px">No photos yet — optional</p>';
+    }
+    body='<div class="card"><div class="ct">📷 Photos</div>'
+      +'<p style="font-size:13px;color:var(--mut);margin-bottom:16px;line-height:1.6">Upload photos of the affected area. You can skip if not needed.</p>'
+      +'<label class="pdrop"><input type="file" accept="image/*" multiple id="photo-inp" style="display:none"/>'
+      +'<div style="font-size:30px;margin-bottom:9px">📤</div>'
+      +'<div style="font-size:14px;font-weight:500">Tap to upload photos</div>'
+      +'<div style="font-size:12px;color:var(--mut);margin-top:3px">JPG, PNG · Multiple allowed</div>'
+      +'</label>'
+      +thumbs
+      +'<div class="fb mt18"><button class="btn btn-g" onclick="set({step:2})">← Back</button><button class="btn btn-p" onclick="submitForm()">Submit to Doctor ✓</button></div>'
+      +'</div>';
+  }
+  return '<div style="max-width:540px;margin:0 auto">'+stepsHtml+slabsHtml+body+'</div>';
+}
+
+function renderDoctor(){
+  var pending=S.patients.filter(function(p){return p.status==='pending';});
+  var done=S.patients.filter(function(p){return p.status==='prescribed';});
+  var listHtml='';
+  if(pending.length>0){listHtml+='<div class="sl">Needs Prescription ('+pending.length+')</div>'+pending.map(pCard).join('');}
+  listHtml+='<div class="sl">Prescribed ('+done.length+')</div>'+done.map(pCard).join('');
+  if(S.patients.length===0)listHtml+='<p style="font-size:13px;color:var(--mut)">No patients yet.</p>';
+  listHtml+='<button class="btn btn-g btn-sm" style="margin-top:11px;width:100%" onclick="refreshPatients()">↻ Refresh</button>';
+  var detail=S.sel?renderPatientDetail():'<div class="empty"><div class="ico">🩺</div><p>Select a patient to review</p></div>';
+  return '<div class="panes"><div class="left">'+listHtml+'</div><div class="right">'+detail+'</div></div>';
+}
+
+function renderPatientDetail(){
+  var p=S.patients.find(function(x){return x.id===S.sel.id;})||S.sel;
+  if(!p)return'';
+  var rx=p.prescriptions&&p.prescriptions[0];
+  var photos=p.patient_photos||[];
+  var html='<div style="max-width:620px">';
+  // Header card
+  html+='<div class="card"><div class="fb">'
+    +'<div><div style="font-size:19px;font-weight:600;margin-bottom:3px">'+p.full_name+'</div>'
+    +'<div style="font-size:13px;color:var(--mut)">Age '+ageOf(p.dob)+' · DOB '+fmtDate(p.dob)+' · '+(p.phone||'—')+'</div>'
+    +'<div style="font-size:13px;color:var(--mut)">'+(p.address||'—')+'</div></div>'
+    +'<span class="pill '+(p.status==='pending'?'pp':'pr')+'">'+(p.status==='pending'?'Awaiting Rx':'Prescribed')+'</span>'
+    +'</div></div>';
+  // Details
+  html+='<div class="card"><div class="g2">'
+    +fd('Chief Complaint',p.chief_complaint)+fd('Allergies ⚠️',p.allergies)
+    +fd('Current Medications',p.current_meds)+fd('Medical History',p.med_history)
+    +fd('Submitted',fmtDate(p.submitted_at))
+    +'</div></div>';
+  // Photos
+  if(photos.length>0){
+    html+='<div class="card"><div class="ct">📷 Photos ('+photos.length+')</div><div class="pgrid">';
+    for(var i=0;i<photos.length;i++){html+='<div class="pthumb"><img src="'+photos[i].file_url+'"/></div>';}
+    html+='</div></div>';
+  }
+  // Existing Rx
+  if(rx){
+    var ings=rx.prescription_ingredients||[];
+    html+='<div class="rxc"><div class="rch">✅ Prescription — '+fmtDate(rx.prescribed_at)+'</div>'
+      +'<table class="rxt"><thead><tr><th>Ingredient</th><th>Strength</th><th>Qty</th><th>Base</th><th>Route</th></tr></thead><tbody>';
+    ings.forEach(function(i){html+='<tr><td><strong>'+i.name+'</strong></td><td>'+i.strength+'</td><td>'+i.quantity+'</td><td>'+(i.base||'—')+'</td><td>'+(i.route||'—')+'</td></tr>';});
+    html+='</tbody></table><div class="g3 mt14">'+fd('Frequency',rx.frequency)+fd('Duration',rx.duration)+fd('Review In',rx.review_in)+'</div></div>';
+  }
+  // Write Rx button
+  if(p.status==='pending'&&!S.writingRx){
+    html+='<div style="text-align:center;padding:18px 0"><button class="btn btn-p" onclick="set({writingRx:true})">✍️ Write Prescription</button></div>';
+  }
+  if(S.writingRx)html+=renderRxForm();
+  html+='</div>';
+  return html;
+}
+
+function renderRxForm(){
+  var rx=S.rx;
+  var routes=['Topical','Oral','Sublingual','Nasal','Rectal','Ophthalmic'];
+  var freqs=['Once daily','Twice daily','Three times daily','Every night','Every morning','Alternate days','Weekly','As needed'];
+  var html='<div class="card" style="border:1.5px solid var(--acc)">'
+    +'<div class="ct">✍️ Write Prescription</div>'
+    +'<div style="display:flex;gap:7px;margin-bottom:5px">'
+    +'<div style="flex:2;font-size:10px;color:var(--mut);text-transform:uppercase;font-weight:600">Ingredient</div>'
+    +'<div style="flex:1;font-size:10px;color:var(--mut);text-transform:uppercase;font-weight:600">Strength</div>'
+    +'<div style="flex:1;font-size:10px;color:var(--mut);text-transform:uppercase;font-weight:600">Qty</div>'
+    +'<div style="flex:1;font-size:10px;color:var(--mut);text-transform:uppercase;font-weight:600">Base</div>'
+    +'<div style="flex:1;font-size:10px;color:var(--mut);text-transform:uppercase;font-weight:600">Route</div>'
+    +'<div style="width:24px"></div></div>';
+  rx.ings.forEach(function(ing,i){
+    var routeOpts='<option value="">Route</option>';
+    routes.forEach(function(r){routeOpts+='<option'+(ing.route===r?' selected':'')+'>'+r+'</option>';});
+    html+='<div class="ir">'
+      +'<input style="flex:2" placeholder="e.g. Minoxidil" value="'+ing.name+'" onchange="setIng('+i+',\'name\',this.value)"/>'
+      +'<input style="flex:1" placeholder="5%" value="'+ing.strength+'" onchange="setIng('+i+',\'strength\',this.value)"/>'
+      +'<input style="flex:1" placeholder="60ml" value="'+ing.qty+'" onchange="setIng('+i+',\'qty\',this.value)"/>'
+      +'<input style="flex:1" placeholder="Gel" value="'+ing.base+'" onchange="setIng('+i+',\'base\',this.value)"/>'
+      +'<select style="flex:1" onchange="setIng('+i+',\'route\',this.value)">'+routeOpts+'</select>'
+      +'<button onclick="remIng('+i+')" style="background:none;border:none;color:#EF4444;font-size:18px;padding:0 3px">×</button>'
+      +'</div>';
+  });
+  html+='<button onclick="addIng()" style="background:none;border:1px dashed var(--bor);border-radius:7px;padding:7px;font-size:13px;color:var(--mut);font-family:inherit;margin-bottom:18px;width:100%">+ Add Ingredient</button>';
+  var freqOpts='<option value="">Select</option>';
+  freqs.forEach(function(f){freqOpts+='<option'+(rx.freq===f?' selected':'')+'>'+f+'</option>';});
+  html+='<div class="g3">'
+    +'<div class="fld"><label>Frequency</label><select onchange="S.rx.freq=this.value">'+freqOpts+'</select></div>'
+    +'<div class="fld"><label>Duration</label><input value="'+rx.dur+'" placeholder="e.g. 3 months" onchange="S.rx.dur=this.value"/></div>'
+    +'<div class="fld"><label>Review In</label><input value="'+rx.rev+'" placeholder="e.g. 6 weeks" onchange="S.rx.rev=this.value"/></div>'
+    +'</div>'
+    +'<div class="fg mt14">'
+    +'<button class="btn btn-p" onclick="submitRx()">Send to Pharmacist ✓</button>'
+    +'<button class="btn btn-g" onclick="set({writingRx:false})">Cancel</button>'
+    +'</div></div>';
+  return html;
+}
+
+function renderPharmacist(){
+  var list=S.patients.filter(function(p){return p.status==='prescribed';});
+  var listHtml='<div class="sl">'+list.length+' Prescription'+(list.length!==1?'s':'')+' Ready</div>';
+  if(list.length===0)listHtml+='<p style="font-size:13px;color:var(--mut)">No prescriptions yet.</p>';
+  listHtml+=list.map(pCard).join('');
+  listHtml+='<button class="btn btn-g btn-sm" style="margin-top:11px;width:100%" onclick="refreshPatients()">↻ Refresh</button>';
+  var detail=(S.sel&&S.sel.prescriptions&&S.sel.prescriptions[0])?renderPharmacistDetail():'<div class="empty"><div class="ico">⚗️</div><p>Select a prescription to view details</p></div>';
+  return '<div class="panes"><div class="left">'+listHtml+'</div><div class="right">'+detail+'</div></div>';
+}
+
+function renderPharmacistDetail(){
+  var p=S.patients.find(function(x){return x.id===S.sel.id;})||S.sel;
+  if(!p)return'';
+  var rx=p.prescriptions&&p.prescriptions[0];
+  if(!rx)return'';
+  var ings=rx.prescription_ingredients||[];
+  var html='<div style="max-width:620px">';
+  html+='<div class="card">'
+    +'<div class="fb" style="margin-bottom:14px">'
+    +'<div><div style="font-size:19px;font-weight:600;margin-bottom:3px">'+p.full_name+'</div>'
+    +'<div style="font-size:13px;color:var(--mut)">Age '+ageOf(p.dob)+' · DOB '+fmtDate(p.dob)+'</div>'
+    +'<div style="font-size:13px;color:var(--mut)">'+(p.address||'—')+'</div>'
+    +'<div style="font-size:13px;color:var(--mut)">📞 '+(p.phone||'—')+'</div></div>'
+    +'<span class="pill pr">Prescribed</span>'
+    +'</div>'
+    +'<div style="border-top:1px solid var(--bor);padding-top:14px"><div class="g2">'
+    +fd('Allergies ⚠️',p.allergies)+fd('Current Medications',p.current_meds)+fd('Chief Complaint',p.chief_complaint)
+    +'</div></div></div>';
+  html+='<div class="rxc"><div class="rch">⚗️ Compounding Prescription · '+fmtDate(rx.prescribed_at)+'</div>'
+    +'<table class="rxt"><thead><tr><th>Ingredient / API</th><th>Strength</th><th>Quantity</th><th>Base / Vehicle</th><th>Route</th></tr></thead><tbody>';
+  ings.forEach(function(ing,i){
+    html+='<tr style="background:'+(i%2===0?'white':'#FFFBEB')+'"><td><strong>'+ing.name+'</strong></td><td>'+ing.strength+'</td><td>'+ing.quantity+'</td><td>'+(ing.base||'—')+'</td><td>'+(ing.route||'—')+'</td></tr>';
+  });
+  html+='</tbody></table>'
+    +'<div class="g3 mt14">'+fd('Frequency',rx.frequency)+fd('Duration',rx.duration)+fd('Review In',rx.review_in)+'</div>'
+    +'<div class="lbl">'
+    +'<div style="font-size:11px;color:var(--mut);text-transform:uppercase;letter-spacing:.07em;margin-bottom:7px;font-weight:600">🏷️ Label Info</div>'
+    +'<strong>Patient:</strong> '+p.full_name+'<br/>'
+    +'<strong>DOB:</strong> '+fmtDate(p.dob)+'<br/>'
+    +'<strong>Address:</strong> '+(p.address||'—')+'<br/>'
+    +'<strong>Rx Date:</strong> '+fmtDate(rx.prescribed_at)+'<br/>'
+    +'<strong>Formulation:</strong> '+ings.map(function(i){return i.name+' '+i.strength;}).join(' + ')+'<br/>'
+    +'<strong>Frequency:</strong> '+(rx.frequency||'—')+'<br/>'
+    +'<strong>Duration:</strong> '+(rx.duration||'—')
+    +'</div></div></div>';
+  return html;
+}
+
+function bindEvents(){
+  var pi=el('photo-inp');
+  if(pi)pi.addEventListener('change',function(e){
+    var files=Array.from(e.target.files);
+    Promise.all(files.map(function(f){return new Promise(function(res){var r=new FileReader();r.onload=function(){res({name:f.name,url:r.result});};r.readAsDataURL(f);});})).then(function(photos){S.photos=S.photos.concat(photos);render();});
+  });
+  ['a-email','a-pass','a-name'].forEach(function(id){
+    var inp=el(id);
+    if(inp)inp.addEventListener('keydown',function(e){if(e.key==='Enter')S.authMode==='login'?doLogin():doSignup();});
+  });
+}
 </script>
 </body>
 </html>
