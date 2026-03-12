@@ -3,38 +3,207 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>RxCompound</title>
+<title>CompoundRx</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{--bg:#F5F3EF;--sur:#fff;--ink:#1C1917;--mut:#78716C;--bor:#E7E5E4;--acc:#2D6A4F;--acl:#D8F3DC;--wrn:#B45309;--wrl:#FEF3C7;--red:#DC2626;--rdl:#FEE2E2}
-body{font-family:'Palatino Linotype',Palatino,serif;background:var(--bg);color:var(--ink);min-height:100vh}
+:root{
+  --bg:#F5F3EF;--sur:#fff;--ink:#1C1917;--mut:#78716C;--bor:#E7E5E4;
+  --acc:#2D6A4F;--acl:#D8F3DC;--wrn:#B45309;--wrl:#FEF3C7;--red:#DC2626;--rdl:#FEE2E2;
+  --patient-bg:#EFF6FF;--patient-acc:#1D4ED8;--patient-glow:rgba(59,130,246,0.15);
+  --doctor-bg:#F0FDF4;--doctor-acc:#166534;--doctor-glow:rgba(34,197,94,0.15);
+  --pharma-bg:#FFFBEB;--pharma-acc:#B45309;--pharma-glow:rgba(245,158,11,0.15);
+}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--ink);min-height:100vh}
 input,select,textarea,button{font-family:inherit}button{cursor:pointer}
+
+/* ─── Header ─── */
 header{background:var(--sur);border-bottom:1px solid var(--bor);padding:0 28px;height:56px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
-.logo{font-size:17px;font-weight:600}
-.badge{font-size:11px;padding:3px 10px;border-radius:20px;font-weight:500}
+.logo{font-family:'DM Serif Display',serif;font-size:20px;letter-spacing:-0.01em}
+.badge{font-size:11px;padding:3px 10px;border-radius:20px;font-weight:600}
 .bp{background:#DBEAFE;color:#1E40AF}.bd{background:var(--acl);color:#166534}.bph{background:var(--wrl);color:var(--wrn)}
 .main{padding:24px 28px}
-.auth-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
-.auth-box{background:var(--sur);border:1px solid var(--bor);border-radius:16px;padding:36px;width:100%;max-width:400px}
-.auth-logo{text-align:center;margin-bottom:28px}
-.auth-logo .ico{font-size:38px;margin-bottom:8px}
-.auth-logo h1{font-size:24px;font-weight:400}
-.auth-logo p{color:var(--mut);font-size:13px;margin-top:4px}
-.tabs{display:flex;border:1px solid var(--bor);border-radius:9px;overflow:hidden;margin-bottom:20px}
-.tab{flex:1;padding:9px;background:none;border:none;font-size:14px;color:var(--mut)}
-.tab.on{background:var(--acc);color:#fff;font-weight:600}
-.fld{margin-bottom:13px}
-.fld label{display:block;font-size:11px;color:var(--mut);text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px;font-weight:600}
-.fld input,.fld select,.fld textarea{width:100%;padding:9px 13px;border:1px solid var(--bor);border-radius:7px;font-size:14px;color:var(--ink);background:#FAFAF9;outline:none}
-.fld input:focus,.fld select:focus,.fld textarea:focus{border-color:var(--acc)}
+
+/* ─── Auth Landing ─── */
+.auth-scene{
+  min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:40px 20px;position:relative;overflow:hidden;
+  background:linear-gradient(160deg,#fdfcfa 0%,#f0ede8 100%);
+}
+.auth-scene::before{
+  content:'';position:absolute;inset:0;
+  background:
+    radial-gradient(ellipse 600px 400px at 15% 20%,rgba(45,106,79,0.04) 0%,transparent 70%),
+    radial-gradient(ellipse 500px 300px at 85% 80%,rgba(180,83,9,0.04) 0%,transparent 70%);
+  pointer-events:none;
+}
+.auth-wordmark{
+  text-align:center;margin-bottom:56px;position:relative;
+}
+.auth-wordmark h1{
+  font-family:'DM Serif Display',serif;font-size:48px;font-weight:400;
+  letter-spacing:-0.03em;color:var(--ink);line-height:1;
+}
+.auth-wordmark h1 em{font-style:italic;color:var(--acc)}
+.auth-wordmark p{font-size:15px;color:var(--mut);margin-top:10px;font-weight:300;letter-spacing:0.02em}
+.auth-wordmark .rx-pill{
+  display:inline-block;background:var(--acl);color:var(--acc);
+  font-size:10px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;
+  padding:4px 12px;border-radius:20px;margin-bottom:16px;
+}
+
+/* ─── Portal Cards ─── */
+.portals{display:flex;gap:18px;justify-content:center;flex-wrap:wrap;position:relative;z-index:1}
+
+.portal{
+  position:relative;width:220px;border-radius:24px;padding:36px 28px 32px;
+  cursor:pointer;border:1.5px solid transparent;overflow:hidden;
+  transition:transform 0.25s cubic-bezier(.34,1.56,.64,1), box-shadow 0.25s ease, border-color 0.2s ease;
+  text-align:left;background:white;
+  box-shadow:0 2px 12px rgba(0,0,0,0.05), 0 1px 3px rgba(0,0,0,0.04);
+}
+.portal::before{
+  content:'';position:absolute;inset:0;opacity:0;
+  transition:opacity 0.3s ease;border-radius:24px;
+}
+.portal:hover{transform:translateY(-8px) scale(1.02);}
+.portal:hover::before{opacity:1;}
+.portal:active{transform:translateY(-4px) scale(1.01);}
+
+/* Patient */
+.portal-patient{border-color:#BFDBFE;}
+.portal-patient::before{background:radial-gradient(ellipse at 50% 0%,rgba(59,130,246,0.08),transparent 70%);}
+.portal-patient:hover{border-color:#93C5FD;box-shadow:0 20px 48px rgba(59,130,246,0.15), 0 4px 12px rgba(0,0,0,0.06);}
+
+/* Doctor */
+.portal-doctor{border-color:#BBF7D0;}
+.portal-doctor::before{background:radial-gradient(ellipse at 50% 0%,rgba(34,197,94,0.09),transparent 70%);}
+.portal-doctor:hover{border-color:#86EFAC;box-shadow:0 20px 48px rgba(34,197,94,0.15), 0 4px 12px rgba(0,0,0,0.06);}
+
+/* Pharmacist */
+.portal-pharma{border-color:#FDE68A;}
+.portal-pharma::before{background:radial-gradient(ellipse at 50% 0%,rgba(245,158,11,0.09),transparent 70%);}
+.portal-pharma:hover{border-color:#FCD34D;box-shadow:0 20px 48px rgba(245,158,11,0.15), 0 4px 12px rgba(0,0,0,0.06);}
+
+.portal-icon{
+  width:56px;height:56px;border-radius:18px;display:flex;align-items:center;justify-content:center;
+  font-size:26px;margin-bottom:20px;position:relative;z-index:1;
+  transition:transform 0.2s ease;
+}
+.portal:hover .portal-icon{transform:scale(1.1) rotate(-3deg);}
+.portal-patient .portal-icon{background:linear-gradient(135deg,#DBEAFE,#BFDBFE);}
+.portal-doctor .portal-icon{background:linear-gradient(135deg,#DCFCE7,#BBF7D0);}
+.portal-pharma .portal-icon{background:linear-gradient(135deg,#FEF3C7,#FDE68A);}
+
+.portal-title{
+  font-family:'DM Serif Display',serif;font-size:22px;font-weight:400;
+  margin-bottom:6px;position:relative;z-index:1;letter-spacing:-0.02em;
+}
+.portal-patient .portal-title{color:#1E3A8A;}
+.portal-doctor .portal-title{color:#14532D;}
+.portal-pharma .portal-title{color:#78350F;}
+
+.portal-desc{font-size:12.5px;line-height:1.6;color:var(--mut);position:relative;z-index:1;font-weight:400}
+
+.portal-arrow{
+  position:absolute;bottom:20px;right:22px;
+  font-size:18px;opacity:0;transform:translateX(-6px);
+  transition:opacity 0.2s ease, transform 0.2s ease;
+}
+.portal:hover .portal-arrow{opacity:1;transform:translateX(0);}
+.portal-patient .portal-arrow{color:#3B82F6;}
+.portal-doctor .portal-arrow{color:#22C55E;}
+.portal-pharma .portal-arrow{color:#F59E0B;}
+
+.portal-tag{
+  display:inline-block;font-size:10px;font-weight:700;letter-spacing:0.1em;
+  text-transform:uppercase;padding:3px 9px;border-radius:20px;margin-bottom:14px;
+  position:relative;z-index:1;
+}
+.portal-patient .portal-tag{background:#DBEAFE;color:#1D4ED8;}
+.portal-doctor .portal-tag{background:#DCFCE7;color:#166534;}
+.portal-pharma .portal-tag{background:#FEF3C7;color:#B45309;}
+
+/* ─── Auth Box (Login) ─── */
+.auth-overlay{
+  position:fixed;inset:0;background:rgba(28,25,23,0.55);backdrop-filter:blur(8px);
+  display:flex;align-items:center;justify-content:center;z-index:200;
+  padding:20px;animation:fadeIn 0.2s ease;
+}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes slideUp{from{opacity:0;transform:translateY(24px) scale(0.97)}to{opacity:1;transform:translateY(0) scale(1)}}
+
+.auth-box{
+  background:white;border-radius:24px;padding:40px;width:100%;max-width:400px;
+  box-shadow:0 32px 80px rgba(0,0,0,0.2), 0 4px 16px rgba(0,0,0,0.08);
+  position:relative;animation:slideUp 0.3s cubic-bezier(.34,1.2,.64,1);
+}
+.auth-box-header{margin-bottom:28px}
+.auth-box-icon{
+  width:52px;height:52px;border-radius:16px;display:flex;align-items:center;
+  justify-content:center;font-size:24px;margin-bottom:16px;
+}
+.auth-box-title{font-family:'DM Serif Display',serif;font-size:26px;font-weight:400;letter-spacing:-0.02em;margin-bottom:4px}
+.auth-box-sub{font-size:13px;color:var(--mut);font-weight:400}
+.auth-close{
+  position:absolute;top:20px;right:20px;width:32px;height:32px;border-radius:50%;
+  background:#F5F3EF;border:none;color:var(--mut);font-size:16px;display:flex;
+  align-items:center;justify-content:center;transition:background 0.15s, color 0.15s;
+}
+.auth-close:hover{background:var(--bor);color:var(--ink)}
+
+/* Login tabs */
+.auth-tabs{display:flex;background:#F5F3EF;border-radius:12px;padding:4px;margin-bottom:24px;gap:4px}
+.auth-tab{
+  flex:1;padding:8px;border:none;background:none;border-radius:9px;
+  font-size:13px;font-weight:500;color:var(--mut);transition:all 0.18s;
+}
+.auth-tab.on{background:white;color:var(--ink);font-weight:600;box-shadow:0 1px 4px rgba(0,0,0,0.08)}
+
+/* Form fields */
+.fld{margin-bottom:14px}
+.fld label{display:block;font-size:11px;color:var(--mut);text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px;font-weight:600}
+.fld input,.fld select,.fld textarea{
+  width:100%;padding:10px 14px;border:1.5px solid var(--bor);
+  border-radius:10px;font-size:14px;color:var(--ink);background:#FAFAF9;outline:none;
+  transition:border-color 0.15s, box-shadow 0.15s;
+}
+.fld input:focus,.fld select:focus,.fld textarea:focus{
+  border-color:var(--acc);box-shadow:0 0 0 3px rgba(45,106,79,0.08);
+}
 .fld textarea{resize:vertical}
-.btn{padding:10px 20px;border-radius:8px;font-size:14px;font-weight:600;border:none;display:inline-flex;align-items:center;gap:6px;transition:opacity .15s}
-.btn:hover{opacity:.85}.btn:disabled{opacity:.5;cursor:not-allowed}
-.btn-p{background:var(--acc);color:#fff}.btn-g{background:transparent;color:var(--mut);border:1px solid var(--bor)}
+
+/* Patient field focus — blue accent */
+.theme-patient .fld input:focus,.theme-patient .fld select:focus{
+  border-color:#3B82F6;box-shadow:0 0 0 3px rgba(59,130,246,0.1);
+}
+/* Doctor — green */
+.theme-doctor .fld input:focus,.theme-doctor .fld select:focus{
+  border-color:#22C55E;box-shadow:0 0 0 3px rgba(34,197,94,0.1);
+}
+/* Pharma — amber */
+.theme-pharma .fld input:focus,.theme-pharma .fld select:focus{
+  border-color:#F59E0B;box-shadow:0 0 0 3px rgba(245,158,11,0.1);
+}
+
+.btn{padding:11px 22px;border-radius:10px;font-size:14px;font-weight:600;border:none;display:inline-flex;align-items:center;gap:6px;transition:all .18s;letter-spacing:0.01em}
+.btn:hover{opacity:.88;transform:translateY(-1px)}.btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.btn-p{background:var(--acc);color:#fff;box-shadow:0 2px 8px rgba(45,106,79,0.25)}
+.btn-patient{background:linear-gradient(135deg,#2563EB,#1D4ED8);color:#fff;box-shadow:0 2px 8px rgba(37,99,235,0.3)}
+.btn-doctor{background:linear-gradient(135deg,#16A34A,#166534);color:#fff;box-shadow:0 2px 8px rgba(22,163,74,0.3)}
+.btn-pharma{background:linear-gradient(135deg,#D97706,#B45309);color:#fff;box-shadow:0 2px 8px rgba(217,119,6,0.3)}
+.btn-g{background:transparent;color:var(--mut);border:1.5px solid var(--bor)}
+.btn-g:hover{background:#F5F3EF;transform:translateY(-1px)}
 .btn-sm{padding:6px 13px;font-size:12px}.btn-w{width:100%;justify-content:center}
+
+/* Error */
+.err{background:var(--rdl);color:var(--red);padding:10px 13px;border-radius:9px;font-size:13px;margin-bottom:14px;border-left:3px solid var(--red)}
+.staff-note{background:#F8F7F4;border:1px solid var(--bor);border-radius:10px;padding:10px 13px;font-size:12px;color:var(--mut);text-align:center;margin-top:14px;line-height:1.5}
+
+/* ─── Main App ─── */
 .card{background:var(--sur);border:1px solid var(--bor);border-radius:13px;padding:20px 22px;margin-bottom:14px}
-.ct{font-size:15px;font-weight:600;margin-bottom:16px}
+.ct{font-family:'DM Serif Display',serif;font-size:17px;font-weight:400;margin-bottom:16px}
 .sl{font-size:11px;color:var(--mut);text-transform:uppercase;letter-spacing:.08em;font-weight:600;margin-bottom:9px}
 .panes{display:flex;gap:20px;height:calc(100vh - 104px)}
 .left{width:280px;min-width:240px;overflow-y:auto}.right{flex:1;overflow-y:auto}
@@ -58,7 +227,7 @@ header{background:var(--sur);border-bottom:1px solid var(--bor);padding:0 28px;h
 .pthumb{position:relative;border-radius:9px;overflow:hidden;aspect-ratio:1;background:var(--bor)}
 .pthumb img{width:100%;height:100%;object-fit:cover}
 .prm{position:absolute;top:5px;right:5px;background:rgba(0,0,0,.6);border:none;border-radius:50%;width:22px;height:22px;color:#fff;font-size:14px;display:flex;align-items:center;justify-content:center}
-.toast{position:fixed;top:18px;right:18px;z-index:9999;padding:12px 18px;border-radius:9px;font-size:13px;box-shadow:0 6px 20px rgba(0,0,0,.15);max-width:300px}
+.toast{position:fixed;top:18px;right:18px;z-index:9999;padding:12px 18px;border-radius:9px;font-size:13px;box-shadow:0 6px 20px rgba(0,0,0,.15);max-width:300px;font-family:'DM Sans',sans-serif}
 .ts{background:var(--acc);color:#fff}.te{background:var(--red);color:#fff}
 .empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:60%;color:var(--mut);text-align:center;padding:36px}
 .empty .ico{font-size:44px;opacity:.3;margin-bottom:12px}
@@ -74,8 +243,7 @@ header{background:var(--sur);border-bottom:1px solid var(--bor);padding:0 28px;h
 .bspin{width:32px;height:32px;border:3px solid var(--bor);border-top-color:var(--acc);border-radius:50%;animation:sp .7s linear infinite}
 .lsc{min-height:100vh;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:14px}
 @keyframes sp{to{transform:rotate(360deg)}}
-.err{background:var(--rdl);color:var(--red);padding:9px 13px;border-radius:7px;font-size:13px;margin-bottom:13px}
-@media(max-width:620px){.panes{flex-direction:column;height:auto}.left{width:100%}.g2{grid-template-columns:1fr}.main{padding:14px}header{padding:0 14px}}
+@media(max-width:620px){.panes{flex-direction:column;height:auto}.left{width:100%}.g2{grid-template-columns:1fr}.main{padding:14px}header{padding:0 14px}.portals{flex-direction:column;align-items:center}.portal{width:100%;max-width:320px}.auth-wordmark h1{font-size:36px}}
 </style>
 </head>
 <body>
@@ -89,8 +257,8 @@ var db = _s.createClient(
 );
 
 var S = {
-  ready:false, user:null, profile:null,
-  authMode:'login', authError:'', authBusy:false,
+  ready:false, user:null, profile:null, testRole:null,
+  authMode:'choose', staffRole:'doctor', authError:'', authBusy:false,
   patients:[], sel:null,
   step:1, photos:[],
   form:{name:'',dob:'',phone:'',address:'',allergies:'',meds:'',history:'',complaint:''},
@@ -112,14 +280,12 @@ function toast(msg,type){
   setTimeout(function(){t.remove();},3500);
 }
 
-// Boot
 (function(){
   db.auth.getSession().then(function(res){
     var session=res.data.session;
     if(session&&session.user){S.user=session.user;fetchProfile(session.user.id,function(){S.ready=true;render();});}
     else{S.ready=true;render();}
   }).catch(function(e){console.error('boot',e);S.ready=true;render();});
-
   db.auth.onAuthStateChange(function(event,session){
     if(event==='SIGNED_IN'&&session&&session.user){
       S.user=session.user;
@@ -168,14 +334,13 @@ function doSignup(){
   var email=el('a-email')&&el('a-email').value.trim();
   var pass=el('a-pass')&&el('a-pass').value;
   var name=el('a-name')&&el('a-name').value.trim();
-  var role=el('a-role')&&el('a-role').value;
   if(!email||!pass||!name){set({authError:'Please fill all fields'});return;}
   if(pass.length<6){set({authError:'Password must be at least 6 characters'});return;}
   set({authBusy:true,authError:''});
-  db.auth.signUp({email:email,password:pass,options:{data:{full_name:name,role:role}}}).then(function(res){
+  db.auth.signUp({email:email,password:pass,options:{data:{full_name:name,role:'patient'}}}).then(function(res){
     if(res.error){set({authBusy:false,authError:res.error.message});return;}
     if(res.data&&res.data.user){
-      db.from('profiles').upsert({id:res.data.user.id,full_name:name,role:role},{onConflict:'id'}).then(function(){
+      db.from('profiles').upsert({id:res.data.user.id,full_name:name,role:'patient'},{onConflict:'id'}).then(function(){
         toast('Account created! Logging in...');
         set({authBusy:false});
         db.auth.signInWithPassword({email:email,password:pass});
@@ -184,9 +349,47 @@ function doSignup(){
   });
 }
 
+function doPatientSignup(){
+  var email=el('a-email')&&el('a-email').value.trim();
+  var pass=el('a-pass')&&el('a-pass').value;
+  var name=el('a-name')&&el('a-name').value.trim();
+  if(!email||!pass||!name){set({authError:'Please fill all fields'});return;}
+  if(pass.length<6){set({authError:'Password must be at least 6 characters'});return;}
+  set({authBusy:true,authError:''});
+  db.auth.signUp({email:email,password:pass,options:{data:{full_name:name,role:'patient'}}}).then(function(res){
+    if(res.error){set({authBusy:false,authError:res.error.message});return;}
+    if(res.data&&res.data.user){
+      db.from('profiles').upsert({id:res.data.user.id,full_name:name,role:'patient'},{onConflict:'id'}).then(function(){
+        toast('Account created! Logging in...');
+        set({authBusy:false});
+        db.auth.signInWithPassword({email:email,password:pass});
+      });
+    }
+  });
+}
+
+var ALLOWED_STAFF = { doctor: [], pharmacist: [] };
+
+function doStaffLogin(){
+  var email=el('a-email')&&el('a-email').value.trim();
+  var pass=el('a-pass')&&el('a-pass').value;
+  var role=S.staffRole;
+  if(!email||!pass){set({authError:'Please enter email and password'});return;}
+  var allowed=ALLOWED_STAFF[role];
+  if(allowed&&allowed.length>0&&allowed.indexOf(email.toLowerCase())<0){
+    set({authError:'This email is not authorized for '+role+' access.'});
+    return;
+  }
+  set({authBusy:true,authError:''});
+  db.auth.signInWithPassword({email:email,password:pass}).then(function(res){
+    if(res.error){set({authBusy:false,authError:res.error.message});}
+    else{set({authBusy:false});}
+  });
+}
+
 function doLogout(){
   db.auth.signOut().then(function(){
-    set({user:null,profile:null,patients:[],sel:null,step:1,photos:[],writingRx:false,ready:true});
+    set({user:null,profile:null,patients:[],sel:null,step:1,photos:[],writingRx:false,ready:true,authMode:'choose',authError:''});
   });
 }
 
@@ -220,7 +423,6 @@ function submitForm(){
 }
 
 function removePhoto(i){S.photos=S.photos.filter(function(_,x){return x!==i;});render();}
-
 function setIng(i,k,v){S.rx.ings[i][k]=v;}
 function addIng(){S.rx.ings.push({name:'',strength:'',qty:'',base:'',route:''});render();}
 function remIng(i){if(S.rx.ings.length>1){S.rx.ings=S.rx.ings.filter(function(_,x){return x!==i;});render();}}
@@ -251,7 +453,6 @@ function selectPatient(id){S.sel=S.patients.find(function(p){return p.id===id;})
 function fd(label,value){
   return '<div class="fd"><div class="lb">'+label+'</div><div class="vl">'+(value||'—')+'</div></div>';
 }
-
 function pCard(p){
   var sel=S.sel&&S.sel.id===p.id;
   return '<div class="pc'+(sel?' on':'')+'" onclick="selectPatient(\''+p.id+'\')">'
@@ -262,20 +463,34 @@ function pCard(p){
     +'</div>';
 }
 
+function switchRole(role){
+  set({testRole:role, sel:null, writingRx:false, step:1, photos:[]});
+  if(role!=='patient'){fetchPatients(function(){render();});}
+}
+
+// ─── RENDER ───
 function render(){
   var app=el('app');
   if(!S.ready){
-    app.innerHTML='<div class="lsc"><div class="bspin"></div><p style="color:var(--mut);font-size:14px;margin-top:8px">Loading...</p></div>';
+    app.innerHTML='<div class="lsc"><div class="bspin"></div><p style="color:var(--mut);font-size:14px;margin-top:8px;font-family:DM Sans,sans-serif">Loading...</p></div>';
     return;
   }
-  if(!S.user||!S.profile){app.innerHTML=renderAuth();return;}
-  var role=S.profile.role;
+  if(!S.user||!S.profile){
+    app.innerHTML=renderAuth();
+    return;
+  }
+  var role=S.testRole||S.profile.role;
   var roleLabel={patient:'👤 Patient',doctor:'🩺 Doctor',pharmacist:'⚗️ Pharmacist'}[role]||role;
   var badgeClass={patient:'bp',doctor:'bd',pharmacist:'bph'}[role]||'';
   var html='<header>'
-    +'<div class="fg"><span style="font-size:19px">🌿</span><span class="logo">RxCompound</span>'
+    +'<div class="fg"><span class="logo">CompoundRx</span>'
     +'<span class="badge '+badgeClass+'">'+roleLabel+'</span></div>'
     +'<div class="fg"><span style="font-size:13px;color:var(--mut)">'+(S.profile.full_name||S.user.email)+'</span>'
+    +'<div class="fg">'
+    +'<button class="btn btn-g btn-sm" onclick="switchRole(&quot;patient&quot;)">👤</button>'
+    +'<button class="btn btn-g btn-sm" onclick="switchRole(&quot;doctor&quot;)">🩺</button>'
+    +'<button class="btn btn-g btn-sm" onclick="switchRole(&quot;pharmacist&quot;)">⚗️</button>'
+    +'</div>'
     +'<button class="btn btn-g btn-sm" onclick="doLogout()">Logout</button></div>'
     +'</header>'
     +'<div class="main">'+(role==='patient'?renderPatient():role==='doctor'?renderDoctor():role==='pharmacist'?renderPharmacist():'<div class="empty"><div class="ico">⚠️</div><p>Unknown role.</p></div>')+'</div>';
@@ -283,28 +498,105 @@ function render(){
   bindEvents();
 }
 
+// ─── REDESIGNED AUTH ───
 function renderAuth(){
-  var login=S.authMode==='login';
-  var html='<div class="auth-wrap"><div class="auth-box">'
-    +'<div class="auth-logo"><div class="ico">🌿</div><h1>RxCompound</h1><p>Compounding pharmacy portal</p></div>'
-    +'<div class="tabs">'
-    +'<button class="tab'+(login?' on':'')+'" onclick="set({authMode:\'login\',authError:\'\'})">Login</button>'
-    +'<button class="tab'+(!login?' on':'')+'" onclick="set({authMode:\'signup\',authError:\'\'})">Create Account</button>'
+  var landingHtml = '<div class="auth-scene">'
+    +'<div class="auth-wordmark">'
+    +'<div class="rx-pill">Compounding Pharmacy Platform</div>'
+    +'<h1>Compound<em>Rx</em></h1>'
+    +'<p>Choose your portal to continue</p>'
     +'</div>'
-    +(S.authError?'<div class="err">'+S.authError+'</div>':'')
-    +(!login?'<div class="fld"><label>Full Name</label><input id="a-name" placeholder="Your full name"/></div><div class="fld"><label>I am a</label><select id="a-role"><option value="patient">Patient</option><option value="doctor">Doctor</option><option value="pharmacist">Pharmacist</option></select></div>':'')
-    +'<div class="fld"><label>Email</label><input id="a-email" type="email" placeholder="your@email.com"/></div>'
-    +'<div class="fld"><label>Password</label><input id="a-pass" type="password" placeholder="Min 6 characters"/></div>'
-    +'<button class="btn btn-p btn-w mt18"'+(S.authBusy?' disabled':'')+' onclick="'+(login?'doLogin()':'doSignup()')+'">'+( S.authBusy?'<span class="spin"></span> Please wait...':(login?'Login →':'Create Account →'))+'</button>'
+    +'<div class="portals">'
+
+    // Patient card
+    +'<button class="portal portal-patient" onclick="set({authMode:\'patient-login\',authError:\'\'})">'
+    +'<div class="portal-tag">Patient</div>'
+    +'<div class="portal-icon">👤</div>'
+    +'<div class="portal-title">Patient</div>'
+    +'<div class="portal-desc">Submit your details, upload photos, and receive your custom prescription.</div>'
+    +'<div class="portal-arrow">→</div>'
+    +'</button>'
+
+    // Doctor card
+    +'<button class="portal portal-doctor" onclick="set({authMode:\'staff-login\',staffRole:\'doctor\',authError:\'\'})">'
+    +'<div class="portal-tag">Clinician</div>'
+    +'<div class="portal-icon">🩺</div>'
+    +'<div class="portal-title">Doctor</div>'
+    +'<div class="portal-desc">Review patient cases, write compound prescriptions and send to pharmacy.</div>'
+    +'<div class="portal-arrow">→</div>'
+    +'</button>'
+
+    // Pharmacist card
+    +'<button class="portal portal-pharma" onclick="set({authMode:\'staff-login\',staffRole:\'pharmacist\',authError:\'\'})">'
+    +'<div class="portal-tag">Pharmacy</div>'
+    +'<div class="portal-icon">⚗️</div>'
+    +'<div class="portal-title">Pharmacist</div>'
+    +'<div class="portal-desc">Receive prescriptions, view compounding details and prepare patient labels.</div>'
+    +'<div class="portal-arrow">→</div>'
+    +'</button>'
+
     +'</div></div>';
-  return html;
+
+  // Patient login/signup overlay
+  if(S.authMode==='patient-login'||S.authMode==='patient-signup'){
+    var isSig=S.authMode==='patient-signup';
+    var overlay='<div class="auth-overlay" onclick="if(event.target===this)set({authMode:\'choose\',authError:\'\'})">'
+      +'<div class="auth-box theme-patient">'
+      +'<button class="auth-close" onclick="set({authMode:\'choose\',authError:\'\'})">✕</button>'
+      +'<div class="auth-box-header">'
+      +'<div class="auth-box-icon" style="background:linear-gradient(135deg,#DBEAFE,#BFDBFE)">👤</div>'
+      +'<div class="auth-box-title" style="color:#1E3A8A">Patient</div>'
+      +'<div class="auth-box-sub">Sign in to manage your prescriptions</div>'
+      +'</div>'
+      +'<div class="auth-tabs">'
+      +'<button class="auth-tab'+(!isSig?' on':'')+'" onclick="set({authMode:\'patient-login\',authError:\'\'})">Login</button>'
+      +'<button class="auth-tab'+(isSig?' on':'')+'" onclick="set({authMode:\'patient-signup\',authError:\'\'})">Create Account</button>'
+      +'</div>'
+      +(S.authError?'<div class="err">'+S.authError+'</div>':'')
+      +(isSig?'<div class="fld"><label>Full Name</label><input id="a-name" placeholder="As on Aadhar"/></div>':'')
+      +'<div class="fld"><label>Email Address</label><input id="a-email" type="email" placeholder="your@email.com"/></div>'
+      +'<div class="fld"><label>Password</label><input id="a-pass" type="password" placeholder="Min 6 characters"/></div>'
+      +'<button class="btn btn-patient btn-w mt18"'+(S.authBusy?' disabled':'')+' onclick="'+(isSig?'doPatientSignup()':'doLogin()')+'">'+( S.authBusy?'<span class="spin"></span> Please wait...':(isSig?'Create Account →':'Sign In →'))+'</button>'
+      +'</div></div>';
+    return landingHtml+overlay;
+  }
+
+  // Staff (Doctor / Pharmacist) login overlay
+  if(S.authMode==='staff-login'){
+    var r=S.staffRole||'doctor';
+    var isDoc=r==='doctor';
+    var icon=isDoc?'🩺':'⚗️';
+    var titleStr=isDoc?'Doctor':'Pharmacist';
+    var subStr=isDoc?'Clinician access — invitation only':'Pharmacy access — invitation only';
+    var titleColor=isDoc?'#14532D':'#78350F';
+    var themeClass=isDoc?'theme-doctor':'theme-pharma';
+    var iconBg=isDoc?'linear-gradient(135deg,#DCFCE7,#BBF7D0)':'linear-gradient(135deg,#FEF3C7,#FDE68A)';
+    var btnClass=isDoc?'btn-doctor':'btn-pharma';
+    var overlay='<div class="auth-overlay" onclick="if(event.target===this)set({authMode:\'choose\',authError:\'\'})">'
+      +'<div class="auth-box '+themeClass+'">'
+      +'<button class="auth-close" onclick="set({authMode:\'choose\',authError:\'\'})">✕</button>'
+      +'<div class="auth-box-header">'
+      +'<div class="auth-box-icon" style="background:'+iconBg+'">'+icon+'</div>'
+      +'<div class="auth-box-title" style="color:'+titleColor+'">'+titleStr+'</div>'
+      +'<div class="auth-box-sub">'+subStr+'</div>'
+      +'</div>'
+      +(S.authError?'<div class="err">'+S.authError+'</div>':'')
+      +'<div class="fld"><label>Email Address</label><input id="a-email" type="email" placeholder="your@email.com"/></div>'
+      +'<div class="fld"><label>Password</label><input id="a-pass" type="password" placeholder="Password"/></div>'
+      +'<button class="btn '+btnClass+' btn-w mt18"'+(S.authBusy?' disabled':'')+' onclick="doStaffLogin()">'+( S.authBusy?'<span class="spin"></span> Please wait...':'Sign In →')+'</button>'
+      +'<div class="staff-note">🔒 Access restricted to authorized personnel.<br/>Contact admin to request access.</div>'
+      +'</div></div>';
+    return landingHtml+overlay;
+  }
+
+  return landingHtml;
 }
 
 function renderPatient(){
   if(S.step==='done'){
     return '<div style="max-width:460px;margin:70px auto;text-align:center">'
       +'<div style="font-size:52px;margin-bottom:18px">✅</div>'
-      +'<h2 style="font-size:21px;font-weight:500;margin-bottom:9px">Submitted!</h2>'
+      +'<h2 style="font-family:DM Serif Display,serif;font-size:24px;font-weight:400;margin-bottom:9px">Submitted!</h2>'
       +'<p style="color:var(--mut);font-size:14px;line-height:1.7">Your details have been sent to the doctor. You will be contacted once your prescription is ready.</p>'
       +'</div>';
   }
@@ -371,26 +663,22 @@ function renderPatientDetail(){
   var rx=p.prescriptions&&p.prescriptions[0];
   var photos=p.patient_photos||[];
   var html='<div style="max-width:620px">';
-  // Header card
   html+='<div class="card"><div class="fb">'
     +'<div><div style="font-size:19px;font-weight:600;margin-bottom:3px">'+p.full_name+'</div>'
     +'<div style="font-size:13px;color:var(--mut)">Age '+ageOf(p.dob)+' · DOB '+fmtDate(p.dob)+' · '+(p.phone||'—')+'</div>'
     +'<div style="font-size:13px;color:var(--mut)">'+(p.address||'—')+'</div></div>'
     +'<span class="pill '+(p.status==='pending'?'pp':'pr')+'">'+(p.status==='pending'?'Awaiting Rx':'Prescribed')+'</span>'
     +'</div></div>';
-  // Details
   html+='<div class="card"><div class="g2">'
     +fd('Chief Complaint',p.chief_complaint)+fd('Allergies ⚠️',p.allergies)
     +fd('Current Medications',p.current_meds)+fd('Medical History',p.med_history)
     +fd('Submitted',fmtDate(p.submitted_at))
     +'</div></div>';
-  // Photos
   if(photos.length>0){
     html+='<div class="card"><div class="ct">📷 Photos ('+photos.length+')</div><div class="pgrid">';
     for(var i=0;i<photos.length;i++){html+='<div class="pthumb"><img src="'+photos[i].file_url+'"/></div>';}
     html+='</div></div>';
   }
-  // Existing Rx
   if(rx){
     var ings=rx.prescription_ingredients||[];
     html+='<div class="rxc"><div class="rch">✅ Prescription — '+fmtDate(rx.prescribed_at)+'</div>'
@@ -398,7 +686,6 @@ function renderPatientDetail(){
     ings.forEach(function(i){html+='<tr><td><strong>'+i.name+'</strong></td><td>'+i.strength+'</td><td>'+i.quantity+'</td><td>'+(i.base||'—')+'</td><td>'+(i.route||'—')+'</td></tr>';});
     html+='</tbody></table><div class="g3 mt14">'+fd('Frequency',rx.frequency)+fd('Duration',rx.duration)+fd('Review In',rx.review_in)+'</div></div>';
   }
-  // Write Rx button
   if(p.status==='pending'&&!S.writingRx){
     html+='<div style="text-align:center;padding:18px 0"><button class="btn btn-p" onclick="set({writingRx:true})">✍️ Write Prescription</button></div>';
   }
@@ -501,9 +788,13 @@ function bindEvents(){
     var files=Array.from(e.target.files);
     Promise.all(files.map(function(f){return new Promise(function(res){var r=new FileReader();r.onload=function(){res({name:f.name,url:r.result});};r.readAsDataURL(f);});})).then(function(photos){S.photos=S.photos.concat(photos);render();});
   });
-  ['a-email','a-pass','a-name'].forEach(function(id){
-    var inp=el(id);
-    if(inp)inp.addEventListener('keydown',function(e){if(e.key==='Enter')S.authMode==='login'?doLogin():doSignup();});
+  var pass=el('a-pass');
+  if(pass)pass.addEventListener('keydown',function(e){
+    if(e.key==='Enter'){
+      if(S.authMode==='patient-login')doLogin();
+      else if(S.authMode==='patient-signup')doPatientSignup();
+      else if(S.authMode==='staff-login')doStaffLogin();
+    }
   });
 }
 </script>
