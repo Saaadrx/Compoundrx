@@ -370,16 +370,31 @@ function doPatientSignup(){
 
 var ALLOWED_STAFF = { doctor: [], pharmacist: [] };
 
+function doStaffSignup(){
+  var email=el('a-email')&&el('a-email').value.trim();
+  var pass=el('a-pass')&&el('a-pass').value;
+  var name=el('a-name')&&el('a-name').value.trim();
+  var role=S.staffRole||'doctor';
+  if(!email||!pass||!name){set({authError:'Please fill all fields'});return;}
+  if(pass.length<6){set({authError:'Password must be at least 6 characters'});return;}
+  set({authBusy:true,authError:''});
+  db.auth.signUp({email:email,password:pass,options:{data:{full_name:name,role:role}}}).then(function(res){
+    if(res.error){set({authBusy:false,authError:res.error.message});return;}
+    if(res.data&&res.data.user){
+      db.from('profiles').upsert({id:res.data.user.id,full_name:name,role:role},{onConflict:'id'}).then(function(){
+        toast('Account created! Logging in...');
+        set({authBusy:false});
+        db.auth.signInWithPassword({email:email,password:pass});
+      });
+    }
+  });
+}
+
 function doStaffLogin(){
   var email=el('a-email')&&el('a-email').value.trim();
   var pass=el('a-pass')&&el('a-pass').value;
   var role=S.staffRole;
   if(!email||!pass){set({authError:'Please enter email and password'});return;}
-  var allowed=ALLOWED_STAFF[role];
-  if(allowed&&allowed.length>0&&allowed.indexOf(email.toLowerCase())<0){
-    set({authError:'This email is not authorized for '+role+' access.'});
-    return;
-  }
   set({authBusy:true,authError:''});
   db.auth.signInWithPassword({email:email,password:pass}).then(function(res){
     if(res.error){set({authBusy:false,authError:res.error.message});}
@@ -486,11 +501,7 @@ function render(){
     +'<div class="fg"><span class="logo">CompoundRx</span>'
     +'<span class="badge '+badgeClass+'">'+roleLabel+'</span></div>'
     +'<div class="fg"><span style="font-size:13px;color:var(--mut)">'+(S.profile.full_name||S.user.email)+'</span>'
-    +'<div class="fg">'
-    +'<button class="btn btn-g btn-sm" onclick="switchRole(&quot;patient&quot;)">👤</button>'
-    +'<button class="btn btn-g btn-sm" onclick="switchRole(&quot;doctor&quot;)">🩺</button>'
-    +'<button class="btn btn-g btn-sm" onclick="switchRole(&quot;pharmacist&quot;)">⚗️</button>'
-    +'</div>'
+    +''
     +'<button class="btn btn-g btn-sm" onclick="doLogout()">Logout</button></div>'
     +'</header>'
     +'<div class="main">'+(role==='patient'?renderPatient():role==='doctor'?renderDoctor():role==='pharmacist'?renderPharmacist():'<div class="empty"><div class="ico">⚠️</div><p>Unknown role.</p></div>')+'</div>';
@@ -546,7 +557,7 @@ function renderAuth(){
       +'<div class="auth-box-header">'
       +'<div class="auth-box-icon" style="background:linear-gradient(135deg,#DBEAFE,#BFDBFE)">👤</div>'
       +'<div class="auth-box-title" style="color:#1E3A8A">Patient</div>'
-      +'<div class="auth-box-sub">Sign in to manage your prescriptions</div>'
+      +'<div class="auth-box-sub">Sign in to your patient account</div>'
       +'</div>'
       +'<div class="auth-tabs">'
       +'<button class="auth-tab'+(!isSig?' on':'')+'" onclick="set({authMode:\'patient-login\',authError:\'\'})">Login</button>'
@@ -562,12 +573,12 @@ function renderAuth(){
   }
 
   // Staff (Doctor / Pharmacist) login overlay
-  if(S.authMode==='staff-login'){
+  if(S.authMode==='staff-login'||S.authMode==='staff-signup'){
     var r=S.staffRole||'doctor';
+    var isSig2=S.authMode==='staff-signup';
     var isDoc=r==='doctor';
     var icon=isDoc?'🩺':'⚗️';
     var titleStr=isDoc?'Doctor':'Pharmacist';
-    var subStr=isDoc?'Clinician access — invitation only':'Pharmacy access — invitation only';
     var titleColor=isDoc?'#14532D':'#78350F';
     var themeClass=isDoc?'theme-doctor':'theme-pharma';
     var iconBg=isDoc?'linear-gradient(135deg,#DCFCE7,#BBF7D0)':'linear-gradient(135deg,#FEF3C7,#FDE68A)';
@@ -578,13 +589,17 @@ function renderAuth(){
       +'<div class="auth-box-header">'
       +'<div class="auth-box-icon" style="background:'+iconBg+'">'+icon+'</div>'
       +'<div class="auth-box-title" style="color:'+titleColor+'">'+titleStr+'</div>'
-      +'<div class="auth-box-sub">'+subStr+'</div>'
+      +'<div class="auth-box-sub">'+(isSig2?'Create your account':'Sign in to your '+(isDoc?'doctor':'pharmacy')+' account')+'</div>'
+      +'</div>'
+      +'<div class="auth-tabs">'
+      +'<button class="auth-tab'+(!isSig2?' on':'')+'" onclick="set({authMode:\'staff-login\',authError:\'\'})">Login</button>'
+      +'<button class="auth-tab'+(isSig2?' on':'')+'" onclick="set({authMode:\'staff-signup\',authError:\'\'})">Sign Up</button>'
       +'</div>'
       +(S.authError?'<div class="err">'+S.authError+'</div>':'')
+      +(isSig2?'<div class="fld"><label>Full Name</label><input id="a-name" placeholder="Your full name"/></div>':'')
       +'<div class="fld"><label>Email Address</label><input id="a-email" type="email" placeholder="your@email.com"/></div>'
-      +'<div class="fld"><label>Password</label><input id="a-pass" type="password" placeholder="Password"/></div>'
-      +'<button class="btn '+btnClass+' btn-w mt18"'+(S.authBusy?' disabled':'')+' onclick="doStaffLogin()">'+( S.authBusy?'<span class="spin"></span> Please wait...':'Sign In →')+'</button>'
-      +'<div class="staff-note">🔒 Access restricted to authorized personnel.<br/>Contact admin to request access.</div>'
+      +'<div class="fld"><label>Password</label><input id="a-pass" type="password" placeholder="'+(isSig2?'Min 6 characters':'Password')+'"/></div>'
+      +'<button class="btn '+btnClass+' btn-w mt18"'+(S.authBusy?' disabled':'')+' onclick="'+(isSig2?'doStaffSignup()':'doStaffLogin()')+'">'+( S.authBusy?'<span class="spin"></span> Please wait...':(isSig2?'Create Account →':'Sign In →'))+'</button>'
       +'</div></div>';
     return landingHtml+overlay;
   }
