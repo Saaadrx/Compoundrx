@@ -319,16 +319,7 @@ function fetchPatients(cb){
   }).catch(function(e){console.error('fetchPatients',e);S.patients=[];if(cb)cb();});
 }
 
-function doLogin(){
-  var email=el('a-email')&&el('a-email').value.trim();
-  var pass=el('a-pass')&&el('a-pass').value;
-  if(!email||!pass){set({authError:'Please enter email and password'});return;}
-  set({authBusy:true,authError:''});
-  db.auth.signInWithPassword({email:email,password:pass}).then(function(res){
-    if(res.error){set({authBusy:false,authError:res.error.message});}
-    else{set({authBusy:false});}
-  });
-}
+
 
 function doSignup(){
   var email=el('a-email')&&el('a-email').value.trim();
@@ -397,8 +388,39 @@ function doStaffLogin(){
   if(!email||!pass){set({authError:'Please enter email and password'});return;}
   set({authBusy:true,authError:''});
   db.auth.signInWithPassword({email:email,password:pass}).then(function(res){
-    if(res.error){set({authBusy:false,authError:res.error.message});}
-    else{set({authBusy:false});}
+    if(res.error){set({authBusy:false,authError:res.error.message});return;}
+    // Check that the profile role matches this portal
+    var uid=res.data.user.id;
+    db.from('profiles').select('role').eq('id',uid).maybeSingle().then(function(pr){
+      if(pr.data&&pr.data.role!==role){
+        // Role mismatch — sign out and show error
+        db.auth.signOut().then(function(){
+          set({authBusy:false,authError:'This account is registered as a '+pr.data.role+'. Please use the '+pr.data.role+' portal to log in.'});
+        });
+      } else {
+        set({authBusy:false});
+      }
+    });
+  });
+}
+
+function doLogin(){
+  var email=el('a-email')&&el('a-email').value.trim();
+  var pass=el('a-pass')&&el('a-pass').value;
+  if(!email||!pass){set({authError:'Please enter email and password'});return;}
+  set({authBusy:true,authError:''});
+  db.auth.signInWithPassword({email:email,password:pass}).then(function(res){
+    if(res.error){set({authBusy:false,authError:res.error.message});return;}
+    var uid=res.data.user.id;
+    db.from('profiles').select('role').eq('id',uid).maybeSingle().then(function(pr){
+      if(pr.data&&pr.data.role!=='patient'){
+        db.auth.signOut().then(function(){
+          set({authBusy:false,authError:'This account is registered as a '+pr.data.role+'. Please use the '+pr.data.role+' portal to log in.'});
+        });
+      } else {
+        set({authBusy:false});
+      }
+    });
   });
 }
 
